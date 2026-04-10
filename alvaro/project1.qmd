@@ -1,0 +1,246 @@
+---
+title: "project 1"
+author: "Alvaro Ramos"
+format: html
+embed-resources: true
+code-tools: true
+---
+
+```{r}
+#| label: packages-setup
+library(tidyverse); library(gt)
+```
+
+```{r}
+# loading in the data
+cases_month <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_month.csv')
+cases_year <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_year.csv')
+```
+
+
+## Data
+
+Data used for this project, which explores measles and rubella cases around the world, come from the World Health Organization "Provisional measles and rubella data" from June 12, 2025, and the data were cleaned by Jen Richmond for one of the tidytuesday's datasets. Data form two different datasets, one being the total number of measles and rubella cases for different years, countries, and regions, and the other being the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
+
+```{r}
+cases_month
+cases_year
+```
+
+Using these data, there are some research questions that may be addressed:
+
+* Are there differences between different regions or countries for the number of measles and rubella cases over time?
+* Are there differences between different regions or countries for the number of discarded measles and rubella cases over time?
+* Using supplemental data, what variables of the region or country (economy, size, emissions, healthcare, etc.) seem to be associated to the number of measles and rubella cases?
+* Using supplemental data, what environmental variables (weather, wind speed, temperature, rain, etc.) seem to be associated to the number of measles and rubella cases?
+
+![](image.png)
+![](image2.png)
+
+## checkpoint_2
+
+```{r}
+dm <- cases_month
+dy <- cases_year
+```
+
+### function draft
+
+```{r}
+summ_stats <- function(x){
+  
+  if (is.numeric(x)){
+    tibble(
+      var = var(x),
+      mean = mean(x),
+      median = median(x),
+      sd = sd(x),
+      iqr = quantile(x, 0.75) - quantile(x, 0.25)
+    )
+  }
+  
+  else if (is.character(x) | is.factor(x)){
+    tibble(nlevels(as.factor(x)))
+  }
+  
+}
+```
+
+```{r}
+# function to determine average rate
+rate <- function(x){
+  
+  # initialize tibble
+  r <- tibble(
+    country = levels(as.factor(dy$country))
+  )
+  
+  # initialize vector to store rate for each country
+  v <- c()
+  
+  # for each country
+  for (i in r$country){
+
+    d <- dy |> 
+      filter(country == i)
+    
+    # initialize storage vector
+    s <- c()
+    
+    # calculate 
+    for (i in (2:length(d$year))){
+      
+      diff_yr <- d$year[i] - d$year[i - 1]
+      diff_x <- d[[x]][i] - d[[x]][i - 1]
+      rate <- diff_x / diff_yr
+      
+      s <- append(s, rate)
+    }
+    
+    avg_rate <- mean(s)
+    v <- append(v, avg_rate)
+    
+  }
+  
+  r <- r |>
+    bind_cols(x = v) |> 
+    mutate(x = round(x, 2))
+  
+  r
+}
+```
+
+```{r}
+d <- rate("total_population")
+```
+
+```{r}
+dy |> 
+  group_by(region, country) |> 
+  summarize(count = n()) |> 
+  na.omit() |> 
+  select(-count) |> 
+  #full_join(rate("total_population")) |> 
+  full_join(rate("measles_clinical")) |> 
+  summarize(mean = mean(x) |> round(2))
+```
+
+
+
+
+
+
+
+
+
+
+
+### summary tables
+
+```{r}
+# recoding region to be more informative
+dy <- dy |> 
+  mutate(region = fct_recode(
+    region,
+    "Africa" = "AFRO",
+    "Americas" = "AMRO",
+    "Eastern Mediterranean" = "EMRO",
+    "Europe" = "EURO",
+    "South East Asia" = "SEARO",
+    "Western Pacific" = "WPRO"
+    )
+    )
+```
+
+```{r}
+dy |> 
+  group_by(region, country) |> 
+  summarize(avg_cases = mean(measles_total, na.rm = TRUE)) |> 
+  arrange(-avg_cases) |> 
+  gt() |> 
+  fmt_number(columns = avg_cases, 
+             decimals = 2) |> 
+  cols_label("avg_cases" = "Average") |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Average number of total measles cases")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing the average number of total measles cases from 2012 to 2024 for different countries")
+    )
+```
+
+```{r}
+dy |> 
+  group_by(region, country) |> 
+  summarize(avg_cases = mean(measles_total, na.rm = TRUE)) |> 
+  ungroup() |> 
+  arrange(-avg_cases) |> 
+  gt() |> 
+  fmt_number(columns = avg_cases, 
+             decimals = 2) |> 
+  cols_label("avg_cases" = "Average") |> 
+  data_color(columns = region) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Average number of total measles cases")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing the average number of total measles cases from 2012 to 2024 for different countries, colored by region")
+    )
+```
+
+```{r}
+dy |> 
+  group_by(region, country) |> 
+  mutate(prop = measles_total / total_population) |> 
+  summarize(mean_prop = mean(prop)) |> 
+  arrange(-mean_prop) |> 
+  gt() |> 
+  fmt_number(columns = mean_prop, 
+             decimals = 5) |> 
+  cols_label("mean_prop" = "Average proportion") |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Average population proportion of measles cases")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing the average population proportion of measles cases from 2012 to 2024 for different countries")
+    )
+```
+
+```{r}
+dy |> 
+  group_by(region, country) |> 
+  mutate(prop = measles_total / total_population) |> 
+  summarize(mean_prop = mean(prop)) |> 
+  ungroup() |> 
+  arrange(-mean_prop) |> 
+  gt() |> 
+  fmt_number(columns = mean_prop, 
+             decimals = 5) |> 
+  cols_label("mean_prop" = "Average proportion") |> 
+  data_color(columns = region) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Average population proportion of measles cases")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing the average population proportion of measles cases from 2012 to 2024 for different countries, colored by region")
+    )
+```
+
+
+
