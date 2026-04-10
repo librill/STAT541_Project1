@@ -29,8 +29,8 @@ cases_month |>
   cols_align(align = "left", columns = month) |>
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_column_labels()) |>
-  tab_header(title = md("ADD TITLE")) |>
-  tab_caption(caption = md("ADD CAPTION")) |>
+  tab_header(title = md("Ratios of Symptomatic to Confirmed Measles")) |>
+  tab_caption(caption = md("**Fig X.** Summary table visualizing how ratios change from across all regions for the year 2024")) |>
   cols_label(month = "Month",
              prop_suspected_confirmed = "Symptomatic/Confirmed Proportion")
 
