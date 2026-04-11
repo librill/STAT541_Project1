@@ -8,6 +8,8 @@ format:
     code-tools: true
     toc: true
     embed-resources: true
+    message: false
+    warning: false
 ---
 
 # Context
@@ -41,7 +43,8 @@ cases_year <- tuesdata$cases_year
 
 ########## HELPER FUNCTIONS ##########
 ######################################
-#using the same summ_stats as practice activity 2
+
+# using the same summ_stats as practice activity 2
 summ_stats <- function(x) {
     
     # if x contains numeric values, return a tibble with the mean, med, sd, IQR, and n observed
@@ -93,17 +96,17 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
 ```
 
 ```{r}
-#| label: libbys function
+#| label: new variable function + interation
 
-calculate_2025_prop_sc <- function(input_month) {
+calculate_2024_prop_sc <- function(input_month) {
   cases_month |>
     filter(year == 2024,
            month == input_month) |>
-    summarize(unconfirmed = sum(measles_suspect + measles_clinical,
+    summarize(symptomatic = sum(measles_suspect + measles_clinical,
                                 na.rm = TRUE),
               confirmed = sum(measles_epi_linked + measles_lab_confirmed,
                               na.rm = TRUE),
-              prop = unconfirmed / confirmed) |>
+              prop = symptomatic / confirmed) |>
     select(prop) |>
     pull()
 }
@@ -132,18 +135,22 @@ dy <- cases_year |>
 cases_month |>
   filter(year == 2024) |>
   distinct(month) |>
-  mutate(prop_suspected_confirmed = map_dbl(month, calculate_2025_prop_sc),
+  mutate(prop_symptomatic_confirmed = map_dbl(month, calculate_2024_prop_sc),
          month = month(month, label = TRUE, abbr = FALSE)) |>
   gt() |>
-  data_color(columns = prop_suspected_confirmed, method = "numeric", palette = "Greens") |>
-  fmt_number(columns = prop_suspected_confirmed, decimals = 2) |>
+  data_color(columns = prop_symptomatic_confirmed, method = "numeric",
+             palette = "Greens") |>
+  fmt_number(columns = prop_symptomatic_confirmed, decimals = 2) |>
   cols_align(align = "left", columns = month) |>
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_column_labels()) |>
-  tab_header(title = md("Ratio of Symptomatic to Confirmed Measles")) |>
-  tab_caption(caption = md("**Fig X.** Summary table visualizing how ratios change from across all regions for the year 2024")) |>
+  tab_header(title = md("2024 Ratios of Symptomatic to Confirmed Measles Cases")) |>
+  tab_caption(caption = md("**Fig X.** Summary table visualizing how overall
+                           (across all countries) ratios of symptomatic to
+                           confirmed measles cases changed throughout the year
+                           2024")) |>
   cols_label(month = "Month",
-             prop_suspected_confirmed = "Symptomatic/Confirmed Proportion")
+             prop_symptomatic_confirmed = "Symptomatic/Confirmed Proportion")
 ```
 
 
@@ -163,7 +170,8 @@ dy |>
   gt() |> 
   fmt_number(columns = -c(country, region), 
              decimals = 2) |> 
-  cols_label("mean" = "Mean",
+  cols_label("country" = "Country",
+             "mean" = "Mean",
              "median" = "Median",
              "stdev" = "Standard Deviation",
              "iqr" = "IQR",
@@ -173,11 +181,18 @@ dy |>
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
     ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
   tab_header(
-    title = md("Summary statistics of total measles cases")
+    title = md("Summary Statistics of Total Measles Sases by Country")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing various statistics of total measles cases, averaged from 2012 to 2024 for different countries. Notably, some countries demonstrate large differences between the mean and median.")
+    caption = md("**Fig X.** Summary table visualizing various statistics of
+                 total measles cases, averaged from 2012 to 2024 for different
+                 countries. Notably, some countries demonstrate large
+                 differences between the mean and median.")
     )
 ```
 
@@ -197,7 +212,8 @@ dy |>
   gt() |> 
   fmt_number(columns = -c(country, region), 
              decimals = 2) |> 
-  cols_label("mean" = "Mean",
+  cols_label("country" = "Country",
+             "mean" = "Mean",
              "median" = "Median",
              "stdev" = "Standard Deviation",
              "iqr" = "IQR",
@@ -207,8 +223,12 @@ dy |>
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
     ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
   tab_header(
-    title = md("Summary statistics of number total measles cases for each 1 million individuals")
+    title = md("Summary Statistics of number total measles cases for each 1 million individuals")
   ) |> 
   tab_caption(
     caption = md("**Fig X.** Summary table visualizing various statistics of the number total measles cases for each 1 million individuals, averaged from 2012 to 2024 for different countries. Notably, some countries demonstrate large differences between the mean and median.")
