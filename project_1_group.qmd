@@ -19,22 +19,199 @@ format:
 # Preliminary Summary Statistics
 ```{r}
 #| echo: false
+#| output: false
 
 library(tidyverse)
+library(gt)
 ```
 
 ```{r}
 #| label: read in data from GitHub
+#| output: false
 
 tuesdata <- tidytuesdayR::tt_load('2025-06-24')
-## OR
 
 cases_month <- tuesdata$cases_month
 cases_year <- tuesdata$cases_year
 ```
 
+
 ```{r}
 #| label: creating function with iteration for summary statistics 
 
+########## HELPER FUNCTIONS ##########
+######################################
+#using the same summ_stats as practice activity 2
+summ_stats <- function(x) {
+    
+    # if x contains numeric values, return a tibble with the mean, med, sd, IQR, and n observed
+    if (is.numeric(x)) {
+        out_df <- tibble(
+            mean = mean(x, na.rm = TRUE), 
+            median = median(x, na.rm = TRUE), 
+            stdev = sd(x, na.rm = TRUE), 
+            iqr = IQR(x, na.rm = TRUE),
+            n = sum(!is.na(x)) # length won't work bc of NAs
+        )
+    # if x contains categorical, return tibble with # of levels in variable 
+    } else if (is.factor(x) || is.character(x)) {
+        out_df <- tibble(
+            n_levels = n_distinct(x)
+        )
+    } else {
+        stop("Inputted values are not numeric or categorical.")
+    }
 
+    #return the data frame.
+    out_df
+}
+
+summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
+  ######### PARAMETERS ##########
+  # input: df -- the dataframe of interest 
+  # col: column of interest to summarize by: 
+  #   measels_suspect, 
+  #   measels_clinical, 
+  #   measels_epi_linked, 
+  #   measels_lab_confirmed [DEFAULT], 
+  #   measels_total
+  # mode: aggregate by options: 
+  #   region [DEFAULT], 
+  #   country, 
+  #   iso3, 
+  #   year 
+  ###############################
+  
+  df |>
+    select({{mode}}, {{col}}) |>
+    group_by({{mode}}) |>
+    #group_map removed the group column, so to retain that, group_modify. See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    group_modify( ~ summ_stats(.x |>
+                              pull({{col}}))) |>
+    bind_rows()
+}
 ```
+
+```{r}
+#| label: libbys function
+
+calculate_2025_prop_sc <- function(input_month) {
+  cases_month |>
+    filter(year == 2024,
+           month == input_month) |>
+    summarize(unconfirmed = sum(measles_suspect + measles_clinical,
+                                na.rm = TRUE),
+              confirmed = sum(measles_epi_linked + measles_lab_confirmed,
+                              na.rm = TRUE),
+              prop = unconfirmed / confirmed) |>
+    select(prop) |>
+    pull()
+}
+```
+
+
+```{r}
+#| label: data cleaning
+
+dy <- cases_year |> 
+  
+  # recoding region to be more informative
+  mutate(region = fct_recode(
+    region,
+    "Africa" = "AFRO",
+    "Americas" = "AMRO",
+    "Eastern Mediterranean" = "EMRO",
+    "Europe" = "EURO",
+    "South East Asia" = "SEARO",
+    "Western Pacific" = "WPRO"
+    )
+    )
+```
+
+```{r}
+cases_month |>
+  filter(year == 2024) |>
+  distinct(month) |>
+  mutate(prop_suspected_confirmed = map_dbl(month, calculate_2025_prop_sc),
+         month = month(month, label = TRUE, abbr = FALSE)) |>
+  gt() |>
+  data_color(columns = prop_suspected_confirmed, method = "numeric", palette = "Greens") |>
+  fmt_number(columns = prop_suspected_confirmed, decimals = 2) |>
+  cols_align(align = "left", columns = month) |>
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_column_labels()) |>
+  tab_header(title = md("Ratio of Symptomatic to Confirmed Measles")) |>
+  tab_caption(caption = md("**Fig X.** Summary table visualizing how ratios change from across all regions for the year 2024")) |>
+  cols_label(month = "Month",
+             prop_suspected_confirmed = "Symptomatic/Confirmed Proportion")
+```
+
+
+
+```{r}
+dy |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(dy, measles_total, country)) |> 
+  group_by(region) |> 
+  arrange(-mean) |> 
+  
+  gt() |> 
+  fmt_number(columns = -c(country, region), 
+             decimals = 2) |> 
+  cols_label("mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "N",
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Summary statistics of total measles cases")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing various statistics of total measles cases, averaged from 2012 to 2024 for different countries. Notably, some countries demonstrate large differences between the mean and median.")
+    )
+```
+
+
+```{r}
+dy |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(dy, measles_incidence_rate_per_1000000_total_population, country)) |> 
+  group_by(region) |> 
+  arrange(-mean) |> 
+  
+  gt() |> 
+  fmt_number(columns = -c(country, region), 
+             decimals = 2) |> 
+  cols_label("mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "N",
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_header(
+    title = md("Summary statistics of number total measles cases for each 1 million individuals")
+  ) |> 
+  tab_caption(
+    caption = md("**Fig X.** Summary table visualizing various statistics of the number total measles cases for each 1 million individuals, averaged from 2012 to 2024 for different countries. Notably, some countries demonstrate large differences between the mean and median.")
+    )
+```
+
