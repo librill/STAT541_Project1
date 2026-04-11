@@ -141,17 +141,19 @@ cases_year <- tuesdata$cases_year
 ```{r}
 #| label: function for creating the data summaries 
 
+########## HELPER FUNCTIONS ##########
+######################################
 #using the same summ_stats as practice activity 2
 summ_stats <- function(x) {
     
-    # if x contains numeric values, return a tibble with the mean, med, sd, IQR
+    # if x contains numeric values, return a tibble with the mean, med, sd, IQR, and n observed
     if (is.numeric(x)) {
         out_df <- tibble(
             mean = mean(x, na.rm = TRUE), 
             median = median(x, na.rm = TRUE), 
             stdev = sd(x, na.rm = TRUE), 
             iqr = IQR(x, na.rm = TRUE),
-            n = length(x, na.rm = TRUE)
+            n = sum(!is.na(x)) # length won't work bc of NAs
         )
     # if x contains categorical, return tibble with # of levels in variable 
     } else if (is.factor(x) || is.character(x)) {
@@ -166,48 +168,28 @@ summ_stats <- function(x) {
     out_df
 }
 
-
-
-summarize_stats <- function(df, col = measles_clinical, mode = country) {
+summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
   ######### PARAMETERS ##########
   # input: df -- the dataframe of interest 
   # col: column of interest to summarize by: 
   #   measels_suspect, 
   #   measels_clinical, 
   #   measels_epi_linked, 
-  #   measels_lab_confirmed, 
+  #   measels_lab_confirmed [DEFAULT], 
   #   measels_total
   # mode: aggregate by options: 
-  #   region, 
+  #   region [DEFAULT], 
   #   country, 
   #   iso3, 
   #   year 
-  # (default = country)
   ###############################
-
-  # if(!(mode %in% c(country, region, year, month, iso3))) stop("Inputted group mode is not in the data frame. Options: country, region, year, month, iso3")
-  #function tests to ensure input validity
-  # if(is.data.frame(df)) stop("Inputted value is not a data frame.")
-
+  
   df |>
     select({{mode}}, {{col}}) |>
     group_by({{mode}}) |>
-    summarize(summ_stats({{col}}))
-  # taking the part from PA2, 
-  # iterate on each group to create summary statistics for each group.
-  # map(filtered_df, .f = summ_stats) |>
-  #   bind_rows(.id = "id") |>
-  #   pivot_longer(!id, 
-  #                 names_to = "stat", 
-  #                 values_to = "value") |>
-  #   pivot_wider(names_from = "id", 
-  #               values_from = "value")
+    #group_map removed the group column, so to retain that, group_modify. See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    group_modify( ~ summ_stats(.x |>
+                              pull({{col}}))) |>
+    bind_rows()
 }
-
-# cases_month |>
-#   select(country, measles_suspect) |>
-#   group_by(country) |>
-#   summarize(summ_stats(measles_suspect))
-
-summarize_stats(cases_month)
 ```

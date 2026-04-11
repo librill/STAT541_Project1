@@ -1,0 +1,40 @@
+---
+title: "Project 1"
+author: "Libby Brill, Emi Degembe, Alvaro Ramos"
+date: today
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    toc: true
+    embed-resources: true
+---
+
+# Context
+
+## On MMR
+
+## On Data Collection 
+
+# Preliminary Summary Statistics
+```{r}
+#| echo: false
+
+library(tidyverse)
+```
+
+```{r}
+#| label: read in data from GitHub
+
+tuesdata <- tidytuesdayR::tt_load('2025-06-24')
+## OR
+
+cases_month <- tuesdata$cases_month
+cases_year <- tuesdata$cases_year
+```
+
+```{r}
+#| label: creating function with iteration for summary statistics 
+
+
+```
