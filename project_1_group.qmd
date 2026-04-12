@@ -46,7 +46,8 @@ cases_year <- tuesdata$cases_year
 # using the same summ_stats as practice activity 2
 summ_stats <- function(x) {
     
-    # if x contains numeric values, return a tibble with the mean, med, sd, IQR, and n observed
+    # if x contains numeric values
+      # return a tibble with the mean, med, sd, IQR, and n observed
     if (is.numeric(x)) {
         out_df <- tibble(
             mean = mean(x, na.rm = TRUE), 
@@ -87,7 +88,8 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
   df |>
     select({{mode}}, {{col}}) |>
     group_by({{mode}}) |>
-    #group_map removed the group column, so to retain that, group_modify. See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    #group_map removed the group column, so to retain that, group_modify.
+    # See second example: https://dplyr.tidyverse.org/reference/group_map.html
     group_modify( ~ summ_stats(.x |>
                               pull({{col}}))) |>
     bind_rows()
@@ -110,6 +112,7 @@ calculate_2024_prop_sc <- function(input_month) {
     pull()
 }
 ```
+
 ```{r}
 #| label: data cleaning
 
@@ -146,7 +149,7 @@ dy |>
   arrange(-mean) |> 
   
   gt() |> 
-  fmt_number(columns = -c(country, region), 
+  fmt_number(columns = -c(country, region, n), 
              decimals = 2) |> 
   cols_label("country" = "Country",
              "mean" = "Mean",
@@ -164,12 +167,13 @@ dy |>
     locations = cells_row_groups()
     ) |> 
   tab_header(
-    title = md("Summary Statistics of Total Measles Sases by Country")
+    title = md("Summary Statistics of Total Measles Cases by Country")
   ) |> 
   tab_caption(
     caption = md("**Table 1** Summary table visualizing various statistics of
-                 total measles cases by country. Samples are collected annually from 2012 to 2024. 
-                 Notably, some countries demonstrate large differences between the mean and median.")
+                 total measles cases by country. Samples are collected annually
+                 from 2012 to 2024. Notably, some countries demonstrate large
+                 differences between the mean and median.")
     )
 ```
 
@@ -181,12 +185,14 @@ dy |>
   unique() |>
   arrange(country) |> 
   
-  full_join(summarize_stats(dy, measles_incidence_rate_per_1000000_total_population, country)) |> 
+  full_join(summarize_stats(dy,
+                            measles_incidence_rate_per_1000000_total_population,
+                            country)) |> 
   group_by(region) |> 
   arrange(-mean) |> 
   
   gt() |> 
-  fmt_number(columns = -c(country, region), 
+  fmt_number(columns = -c(country, region, n), 
              decimals = 2) |> 
   cols_label("country" = "Country",
              "mean" = "Mean",
@@ -204,10 +210,15 @@ dy |>
     locations = cells_row_groups()
     ) |> 
   tab_header(
-    title = md("Summary Statistics of number total measles cases for each 1 million individuals")
+    title = md("Summary Statistics for Total Number of Measles Cases for Each
+               1 Million Individuals")
   ) |> 
   tab_caption(
-    caption = md("**Table 2** Summary table visualizing various statistics of the number total measles cases for each 1 million individuals. Samples are collected annually from 2012 to 2024 for each country. Notably, some countries demonstrate large differences between the mean and median.")
+    caption = md("**Table 2** Summary table visualizing various statistics of
+                 the number total measles cases for each 1 million individuals.
+                 Samples are collected annually from 2012 to 2024 for each
+                 country. Notably, some countries demonstrate large differences
+                 between the mean and median.")
     )
 ```
 
@@ -245,8 +256,9 @@ cases_year_modified <- dy |>
 summarize_stats(cases_year_modified, col = p_lab_total) |>
   ungroup() |>
   gt() |> 
-  fmt_number(columns = -c(region), 
+  fmt_number(columns = -c(region, n), 
               decimals = 2) |> 
+  cols_align(align = "left", columns = region) |>
   cols_label("region" = "Region",
               "mean" = "Mean",
               "median" = "Median",
@@ -263,10 +275,13 @@ summarize_stats(cases_year_modified, col = p_lab_total) |>
     locations = cells_row_groups()
     ) |> 
   tab_header(
-    title = md("Summary Statistics of number total measles cases for each 1 million individuals")
+    title = md("Summary Statistics for Proportion of Lab Confirmed Measles Cases
+               by Region")
   ) |> 
   tab_caption(
-    caption = md("**Table 4** Summary statistics of the proportion measles cases that are lab confirmed. Samples are collected annually from a year range of 2012-2024.")
+    caption = md("**Table 4** Summary table for the proportion of total measles
+                 cases that are lab confirmed. Samples are collected annually
+                 from a year range of 2012-2024.")
     )
 
 
