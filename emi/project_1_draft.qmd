@@ -142,8 +142,7 @@ cases_year <- tuesdata$cases_year
 #| label: function for creating the data summaries 
 
 ########## HELPER FUNCTIONS ##########
-######################################
-#using the same summ_stats as practice activity 2
+#using the same summ_stats as practice activity 2, slightly modified to include n observed.
 summ_stats <- function(x) {
     
     # if x contains numeric values, return a tibble with the mean, med, sd, IQR, and n observed
@@ -167,6 +166,7 @@ summ_stats <- function(x) {
     #return the data frame.
     out_df
 }
+######################################
 
 summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
   ######### PARAMETERS ##########
@@ -189,7 +189,7 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
     group_by({{mode}}) |>
     #group_map removed the group column, so to retain that, group_modify. See second example: https://dplyr.tidyverse.org/reference/group_map.html
     group_modify( ~ summ_stats(.x |>
-                              pull({{col}}))) |>
+                                pull({{col}}))) |>
     bind_rows()
 }
 ```

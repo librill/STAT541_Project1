@@ -37,7 +37,6 @@ cases_month <- tuesdata$cases_month
 cases_year <- tuesdata$cases_year
 ```
 
-
 ```{r}
 #| label: creating function with iteration for summary statistics 
 
@@ -111,8 +110,6 @@ calculate_2024_prop_sc <- function(input_month) {
     pull()
 }
 ```
-
-
 ```{r}
 #| label: data cleaning
 
@@ -131,31 +128,12 @@ dy <- cases_year |>
     )
 ```
 
+
+
+## Summary of Existing Variables
 ```{r}
-cases_month |>
-  filter(year == 2024) |>
-  distinct(month) |>
-  mutate(prop_symptomatic_confirmed = map_dbl(month, calculate_2024_prop_sc),
-         month = month(month, label = TRUE, abbr = FALSE)) |>
-  gt() |>
-  data_color(columns = prop_symptomatic_confirmed, method = "numeric",
-             palette = "Greens") |>
-  fmt_number(columns = prop_symptomatic_confirmed, decimals = 2) |>
-  cols_align(align = "left", columns = month) |>
-  tab_style(style = cell_text(weight = "bold"),
-            locations = cells_column_labels()) |>
-  tab_header(title = md("2024 Ratios of Symptomatic to Confirmed Measles Cases")) |>
-  tab_caption(caption = md("**Fig X.** Summary table visualizing how overall
-                           (across all countries) ratios of symptomatic to
-                           confirmed measles cases changed throughout the year
-                           2024")) |>
-  cols_label(month = "Month",
-             prop_symptomatic_confirmed = "Symptomatic/Confirmed Proportion")
-```
+#| label: Summary statistics of total measels by Country
 
-
-
-```{r}
 dy |> 
   
   # used to assign each country to the appropriate region when merging
@@ -175,7 +153,7 @@ dy |>
              "median" = "Median",
              "stdev" = "Standard Deviation",
              "iqr" = "IQR",
-             "n" = "N",
+             "n" = "Sample Size",
              ) |> 
   tab_style(
     style = cell_text(weight = "bold"),
@@ -189,13 +167,11 @@ dy |>
     title = md("Summary Statistics of Total Measles Sases by Country")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing various statistics of
-                 total measles cases, averaged from 2012 to 2024 for different
-                 countries. Notably, some countries demonstrate large
-                 differences between the mean and median.")
+    caption = md("**Table 1** Summary table visualizing various statistics of
+                 total measles cases by country. Samples are collected annually from 2012 to 2024. 
+                 Notably, some countries demonstrate large differences between the mean and median.")
     )
 ```
-
 
 ```{r}
 dy |> 
@@ -217,7 +193,7 @@ dy |>
              "median" = "Median",
              "stdev" = "Standard Deviation",
              "iqr" = "IQR",
-             "n" = "N",
+             "n" = "Sample Size",
              ) |> 
   tab_style(
     style = cell_text(weight = "bold"),
@@ -231,7 +207,68 @@ dy |>
     title = md("Summary Statistics of number total measles cases for each 1 million individuals")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing various statistics of the number total measles cases for each 1 million individuals, averaged from 2012 to 2024 for different countries. Notably, some countries demonstrate large differences between the mean and median.")
+    caption = md("**Table 2** Summary table visualizing various statistics of the number total measles cases for each 1 million individuals. Samples are collected annually from 2012 to 2024 for each country. Notably, some countries demonstrate large differences between the mean and median.")
     )
+```
+
+## Summary of Created Variables
+```{r}
+#| label: Created variable 1 -- proportion of symptomatic v. confirmed
+
+cases_month |>
+  filter(year == 2024) |>
+  distinct(month) |>
+  mutate(prop_symptomatic_confirmed = map_dbl(month, calculate_2024_prop_sc),
+         month = month(month, label = TRUE, abbr = FALSE)) |>
+  gt() |>
+  data_color(columns = prop_symptomatic_confirmed, method = "numeric",
+             palette = "Greens") |>
+  fmt_number(columns = prop_symptomatic_confirmed, decimals = 2) |>
+  cols_align(align = "left", columns = month) |>
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_column_labels()) |>
+  tab_header(title = md("2024 Ratios of Symptomatic to Confirmed Measles Cases")) |>
+  tab_caption(caption = md("**Table 3** Summary table visualizing how overall
+                           (across all countries) ratios of symptomatic to
+                           confirmed measles cases changed throughout the year
+                           2024")) |>
+  cols_label(month = "Month",
+             prop_symptomatic_confirmed = "Symptomatic/Confirmed Proportion")
+```
+
+```{r}
+#| label: Modified 2 -- lab cases/total cases proportion by region 
+
+cases_year_modified <- dy |>
+  mutate(p_lab_total = measles_lab_confirmed / measles_total)
+
+summarize_stats(cases_year_modified, col = p_lab_total) |>
+  ungroup() |>
+  gt() |> 
+  fmt_number(columns = -c(region), 
+              decimals = 2) |> 
+  cols_label("region" = "Region",
+              "mean" = "Mean",
+              "median" = "Median",
+              "stdev" = "Standard Deviation",
+              "iqr" = "IQR",
+              "n" = "Sample Size",
+              ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics of number total measles cases for each 1 million individuals")
+  ) |> 
+  tab_caption(
+    caption = md("**Table 4** Summary statistics of the proportion measles cases that are lab confirmed. Samples are collected annually from a year range of 2012-2024.")
+    )
+
+
 ```
 
