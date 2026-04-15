@@ -214,8 +214,8 @@ dy |>
                             measles_incidence_rate_per_1000000_total_population,
                             country)) |> 
   group_by(region) |> 
+  slice_max(mean, n = 5) |> 
   arrange(-mean) |> 
-  
   gt() |> 
   fmt_number(columns = -c(country, region, n), 
              decimals = 2) |> 
@@ -279,6 +279,7 @@ cases_year_modified <- dy |>
   mutate(p_lab_total = measles_lab_confirmed / measles_total)
 
 summarize_stats(cases_year_modified, col = p_lab_total) |>
+  arrange(-mean) |> 
   ungroup() |>
   gt() |> 
   fmt_number(columns = -c(region, n), 
