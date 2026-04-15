@@ -21,8 +21,6 @@ income by region, healthcare expenditure, some other cool things.
 
 @librill - focus on some of the next week work a bit and the map visualization.
 
-this is a random line to see if it adds to github
-
 # Project 1 -- Checkpoint 2
 
 Guidelines from 
