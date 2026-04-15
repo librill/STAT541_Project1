@@ -125,6 +125,10 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
 #| label: new variable function + interation
 
 calculate_2024_prop_sc <- function(input_month) {
+  if (!is.numeric(input_month)) {
+    stop("Months should be integers (1 for Jan, 2 for Feb, etc.)")
+  }
+  
   cases_month |>
     filter(year == 2024,
            month == input_month) |>
