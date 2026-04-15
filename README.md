@@ -25,3 +25,25 @@ Stat 541 only: Summary tables must at a minimum have:
 * Boldface headers
 * Captions
 
+# Project 1 -- Checkpoint 3
+
+By the end of the week, your updated report should contain:
+two new country-level data sources
+
+One of these must be acquired using APIs, the other using webscraping.
+
+**descriptions of each of the new datasets**
+
+* a “meta” dataset containing all the acquired data (joined together)
+* at least two data summaries OR visualizations incorporating the additional country-level data
+* your webscraped data must come from a multi-paged source, so that iteration is used to gather all the data
+
+__Delegated Tasks__ 
+@nanamiikii - focus on web scraping the countries, iterating over the `region` filters in advanced filter from [WHO Measles vaccination record](https://immunizationdata.who.int/global/wiise-detail-page/measles-vaccination-coverage?CODE=Global&ANTIGEN=MCV1&YEAR=&ADVANCED_GROUPINGS=AFRO)
+
+@an-avocado - focus on pulling data from API, up to him what it's going to be on. 
+
+some starting questions: 
+income by region, healthcare expenditure, some other cool things.
+
+@librill - focus on some of the next week work a bit and the map visualization.
