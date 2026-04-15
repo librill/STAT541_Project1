@@ -1,0 +1,312 @@
+---
+title: "Project 1"
+author: "Libby Brill, Emi Degembe, Alvaro Ramos"
+date: today
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    toc: true
+    embed-resources: true
+    message: false
+    warning: false
+---
+
+# Context
+
+## On MMR
+Measels is a highly contagious respiratory infection caused by the measels virus. The spread of the virus is often through respiratory droplets and can remain in the air for up to 2 hours. While children are the most commonly affected, those who are unvaccinated, pregnant, or immunocompromised are at an increased risk. Typical symptoms include fever, congestion, cough, red eyes, and rash. Complications have led to hospitalization, pneumonia, or even a brain infection.[^1]
+
+Rubella is also a high contagious viral infection spread through airborne droplets or even direct contact with infected mucus from the nose or throat. Compared to measels, there are similar symptoms, though rubella is most known for its distinct rash pattern. Though Rubella is a mild infection for most, pregnant mothers can pass the infection to their unborn child, which can lead to severe complications. Congenital rubella symptoms include miscarriages, stillbirths, growth delays, deafnes, problems in organ formation includive the heart, or even learning difficulties.[^2] 
+
+Both do not have treatments so if infected, the patient must let the virus run its course. The most common prevention method is through the Measels-Mumps-Rubella (MMR) vaccine which is often given to children between 12-15 months and again between 4-6 years old. This vaccine protects against the three viral infections for life and can prevent Rubella during pregnancies.[^3] 
+
+[^1]: https://www.who.int/news-room/fact-sheets/detail/measles
+[^2]: https://www.mayoclinic.org/diseases-conditions/rubella/symptoms-causes/syc-20377310
+[^3]: https://www.ncbi.nlm.nih.gov/books/NBK554450/
+
+## On Data Collection
+The data comes from the World Health Organization's Provisional monthly measels and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measels case testing follows the WHO's [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
+
+| Type of Case | Method | 
+|--------------|------------------------------------------------------------|
+| Clinically Compatible | Patient meets symptom profile, but no sample was collected or no epidemiological link was established. | 
+| Epidemiologically Linked | Used when lab testing becomes impractical. Once outbreak is confirmed via laboratory setting, subsequent suspected cases are confirmed via epidemiological linkage. | 
+| Laboratory Confirmed | Two main methods: IgM Serology, RT-PCR. Both are rapid test kits where the IgM kit identifies the presence of antibodies for the virus and RT-PCR (real-time polymerase chain reaction) amplifies the RNA of the virus in order to confirm the presence/absence at a molecular level. Other methods include Genotyping and Sanger Sequencing which are done through the Global Measels and Rubella Laboratory Network (GMRLN)[^4].| 
+
+[^4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC11359298/
+
+# Data Cleaning
+Below is the cleaning script provided by the [GitHub repository](https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-06-24/readme.md) which the data came from. The data were cleaned by Jen Richmond for one of the tidytuesday's datasets which form two different datasets. One represents the total number of measles and rubella cases for different years, countries, and regions (`cases_year`), and the other (`cases_month`) represents the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
+In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measels_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
+
+# Preliminary Summary Statistics
+
+Below presents a series of tables which provide summary statistics on various columns described in the dataset. 
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+library(gt)
+```
+
+```{r}
+#| label: read in data from GitHub
+#| output: false
+
+tuesdata <- tidytuesdayR::tt_load('2025-06-24')
+
+cases_month <- tuesdata$cases_month
+cases_year <- tuesdata$cases_year
+```
+
+```{r}
+#| label: creating function with iteration for summary statistics 
+
+########## HELPER FUNCTIONS ##########
+######################################
+
+# using the same summ_stats as practice activity 2
+summ_stats <- function(x) {
+    
+    # if x contains numeric values
+      # return a tibble with the mean, med, sd, IQR, and n observed
+    if (is.numeric(x)) {
+        out_df <- tibble(
+            mean = mean(x, na.rm = TRUE), 
+            median = median(x, na.rm = TRUE), 
+            stdev = sd(x, na.rm = TRUE), 
+            iqr = IQR(x, na.rm = TRUE),
+            n = sum(!is.na(x)) # length won't work bc of NAs
+        )
+    # if x contains categorical, return tibble with # of levels in variable 
+    } else if (is.factor(x) || is.character(x)) {
+        out_df <- tibble(
+            n_levels = n_distinct(x)
+        )
+    } else {
+        stop("Inputted values are not numeric or categorical.")
+    }
+
+    #return the data frame.
+    out_df
+}
+
+summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
+  ######### PARAMETERS ##########
+  # input: df -- the dataframe of interest 
+  # col: column of interest to summarize by: 
+  #   measels_suspect, 
+  #   measels_clinical, 
+  #   measels_epi_linked, 
+  #   measels_lab_confirmed [DEFAULT], 
+  #   measels_total
+  # mode: aggregate by options: 
+  #   region [DEFAULT], 
+  #   country, 
+  #   iso3, 
+  #   year 
+  ###############################
+  
+  df |>
+    select({{mode}}, {{col}}) |>
+    group_by({{mode}}) |>
+    #group_map removed the group column, so to retain that, group_modify.
+    # See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    group_modify( ~ summ_stats(.x |>
+                              pull({{col}}))) |>
+    bind_rows()
+}
+```
+
+```{r}
+#| label: new variable function + interation
+
+calculate_2024_prop_sc <- function(input_month) {
+  cases_month |>
+    filter(year == 2024,
+           month == input_month) |>
+    summarize(symptomatic = sum(measles_suspect + measles_clinical,
+                                na.rm = TRUE),
+              confirmed = sum(measles_epi_linked + measles_lab_confirmed,
+                              na.rm = TRUE),
+              prop = symptomatic / confirmed) |>
+    select(prop) |>
+    pull()
+}
+```
+
+```{r}
+#| label: data cleaning
+
+dy <- cases_year |> 
+  
+  # recoding region to be more informative
+  mutate(region = fct_recode(
+    region,
+    "Africa" = "AFRO",
+    "Americas" = "AMRO",
+    "Eastern Mediterranean" = "EMRO",
+    "Europe" = "EURO",
+    "South East Asia" = "SEARO",
+    "Western Pacific" = "WPRO"
+    )
+    )
+```
+
+
+
+## Summary of Existing Variables
+```{r}
+#| label: Summary statistics of total measels by Country
+
+dy |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(dy, measles_total, country)) |> 
+  group_by(region) |> 
+  arrange(-mean) |> 
+  
+  gt() |> 
+  fmt_number(columns = -c(country, region, n), 
+             decimals = 2) |> 
+  cols_label("country" = "Country",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics of Total Measles Cases by Country")
+  ) |> 
+  tab_caption(
+    caption = md("**Table 1** Summary table visualizing various statistics of
+                 total measles cases by country. Samples are collected annually
+                 from 2012 to 2024. Notably, some countries demonstrate large
+                 differences between the mean and median.")
+    )
+```
+
+```{r}
+dy |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(dy,
+                            measles_incidence_rate_per_1000000_total_population,
+                            country)) |> 
+  group_by(region) |> 
+  arrange(-mean) |> 
+  
+  gt() |> 
+  fmt_number(columns = -c(country, region, n), 
+             decimals = 2) |> 
+  cols_label("country" = "Country",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics for Total Number of Measles Cases for Each
+               1 Million Individuals")
+  ) |> 
+  tab_caption(
+    caption = md("**Table 2** Summary table visualizing various statistics of
+                 the number total measles cases for each 1 million individuals.
+                 Samples are collected annually from 2012 to 2024 for each
+                 country. Notably, some countries demonstrate large differences
+                 between the mean and median.")
+    )
+```
+
+## Summary of Created Variables
+```{r}
+#| label: Created variable 1 -- proportion of symptomatic v. confirmed
+
+cases_month |>
+  filter(year == 2024) |>
+  distinct(month) |>
+  mutate(prop_symptomatic_confirmed = map_dbl(month, calculate_2024_prop_sc),
+         month = month(month, label = TRUE, abbr = FALSE)) |>
+  gt() |>
+  data_color(columns = prop_symptomatic_confirmed, method = "numeric",
+             palette = "Greens") |>
+  fmt_number(columns = prop_symptomatic_confirmed, decimals = 2) |>
+  cols_align(align = "left", columns = month) |>
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_column_labels()) |>
+  tab_header(title = md("2024 Ratios of Symptomatic to Confirmed Measles Cases")) |>
+  tab_caption(caption = md("**Table 3** Summary table visualizing how overall
+                           (across all countries) ratios of symptomatic to
+                           confirmed measles cases changed throughout the year
+                           2024")) |>
+  cols_label(month = "Month",
+             prop_symptomatic_confirmed = "Symptomatic/Confirmed Proportion")
+```
+
+```{r}
+#| label: Modified 2 -- lab cases/total cases proportion by region 
+
+cases_year_modified <- dy |>
+  mutate(p_lab_total = measles_lab_confirmed / measles_total)
+
+summarize_stats(cases_year_modified, col = p_lab_total) |>
+  ungroup() |>
+  gt() |> 
+  fmt_number(columns = -c(region, n), 
+              decimals = 2) |> 
+  cols_align(align = "left", columns = region) |>
+  cols_label("region" = "Region",
+              "mean" = "Mean",
+              "median" = "Median",
+              "stdev" = "Standard Deviation",
+              "iqr" = "IQR",
+              "n" = "Sample Size",
+              ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics for Proportion of Lab Confirmed Measles Cases
+               by Region")
+  ) |> 
+  tab_caption(
+    caption = md("**Table 4** Summary table for the proportion of total measles
+                 cases that are lab confirmed. Samples are collected annually
+                 from a year range of 2012-2024.")
+    )
+```
+
