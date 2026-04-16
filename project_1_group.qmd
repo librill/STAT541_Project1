@@ -51,6 +51,8 @@ Below presents a series of tables which provide summary statistics on various co
 
 library(tidyverse)
 library(gt)
+library(tidyjson); library(jsonlite)
+library(httr)
 ```
 
 ```{r}
@@ -319,5 +321,65 @@ summarize_stats(cases_year_modified, col = p_lab_total) |>
 # Additional Data Sources 
 
 ## API-Pulled Data
+
+```{r}
+# API call
+data <- GET("https://www.imf.org/external/datamapper/api/v1/NGDPDPC")
+```
+
+```{r}
+# creating function to make tibbles for each country from json data
+country_values <- function(country){
+  
+  tibble(json = list(parse_json(data))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    select({{country}}) |> 
+    unnest_longer({{country}}) |> 
+    rename(year = str_glue("{country}_id")) |> 
+    pivot_longer(cols = {{country}},
+                 names_to = "iso3",
+                 values_to = "GDP_per_capita"
+                 ) |> 
+    mutate(year = as.numeric(year))
+  
+}
+
+# storing countries available in both the cases_year dataset and json data
+ids <- ids[ids %in% (
+  tibble(json = list(parse_json(d))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    names()
+  )]
+
+# creating dataset from json data for each country and merging to one
+dv <- map(.x = ids,
+          .f = country_values
+          ) |> 
+  bind_rows()
+
+cases_year |> 
+  # join to cases_year dataset
+  full_join(dv) |> 
+  filter(year >= 2012) |> 
+  mutate(region_info = fct_recode(
+    region,
+    "Africa" = "AFRO",
+    "Americas" = "AMRO",
+    "Eastern Mediterranean" = "EMRO",
+    "Europe" = "EURO",
+    "South East Asia" = "SEARO",
+    "Western Pacific" = "WPRO"
+    )
+    )
+```
+
+```{r}
+```
 
 ## Web Scraped Data
