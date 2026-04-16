@@ -10,6 +10,7 @@ format:
     embed-resources: true
     message: false
     warning: false
+    theme: "morph"
 ---
 
 # Context
@@ -315,3 +316,8 @@ summarize_stats(cases_year_modified, col = p_lab_total) |>
     )
 ```
 
+# Additional Data Sources 
+
+## API-Pulled Data
+
+## Web Scraped Data
