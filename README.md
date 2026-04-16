@@ -1,3 +1,8 @@
+> R Environment
+>
+> When installing a package, run `renv::snapshot()` afterwards. 
+> If anyone installs a package/update the environment, run `renv::restore()`.
+
 # Project 1 -- Checkpoint 3
 
 By the end of the week, your updated report should contain:

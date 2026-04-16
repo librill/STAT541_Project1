@@ -127,6 +127,13 @@ TO DO @nanamiikii Focus on lab confirmed by country/year @an-avocado Focus on to
 ```{r}
 #| echo: false
 library(tidyverse)
+
+#rvest 
+#rnaturalearthdata
+#rnaturalearth
+#tidyjson
+#httr
+
 ```
 
 ```{r}
@@ -192,4 +199,10 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
                                 pull({{col}}))) |>
     bind_rows()
 }
+```
+
+## Web Scraping
+
+```{r}
+
 ```
