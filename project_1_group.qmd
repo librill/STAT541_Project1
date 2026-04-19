@@ -350,6 +350,10 @@ country_values <- function(country){
 }
 
 # storing countries available in both the cases_year dataset and json data
+ids <- dy$iso3 |>
+  as.factor() |>
+  levels()
+
 ids <- ids[ids %in% (
   tibble(json = list(parse_json(data))) |> 
     unnest_wider(json) |> 
@@ -368,19 +372,20 @@ dv <- map(.x = ids,
 dataset <- cases_year |> 
   # join to cases_year dataset
   full_join(dv) |> 
-  filter(year >= 2012) |> 
-  mutate(region_info = fct_recode(
-    region,
-    "Africa" = "AFRO",
-    "Americas" = "AMRO",
-    "Eastern Mediterranean" = "EMRO",
-    "Europe" = "EURO",
-    "South East Asia" = "SEARO",
-    "Western Pacific" = "WPRO"
-    )
-    )
+  filter(year >= 2012) #|> 
+  #mutate(region_info = fct_recode(
+    #region,
+    #"Africa" = "AFRO",
+    #"Americas" = "AMRO",
+    #"Eastern Mediterranean" = "EMRO",
+    #"Europe" = "EURO",
+    #"South East Asia" = "SEARO",
+    #"Western Pacific" = "WPRO"
+    #)
+    #)
 ```
 
+(https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-))
 (https://ghoapi.azureedge.net/api/MCV2)
 
 ```{r}
@@ -399,7 +404,13 @@ row <- function(v){
   d |> 
     select(v) |> 
     unnest_wider(v) |> 
-    select(ParentLocationCode, ParentLocation, SpatialDim, TimeDim, Value, NumericValue)
+    select(ParentLocationCode,
+           #ParentLocation,
+           SpatialDim,
+           TimeDim,
+           #Value,
+           NumericValue
+           )
 }
 ```
 
@@ -410,29 +421,21 @@ data <- map(.x = d |> names(),
   bind_rows() |> 
   rename(
     "region" = ParentLocationCode,
-    "region_info" = ParentLocation,
+    #"region_info" = ParentLocation,
     "iso3" = SpatialDim,
     "year" = TimeDim,
-    value = Value,
-    numericvalue = NumericValue
+    #value = Value,
+    "mcv2" = NumericValue
   )
 
-dataset <- cases_year |> 
+dataset <- dataset |> 
   # join to cases_year dataset
   full_join(data |> select(-region),
             by = join_by(iso3, year)
             ) |> 
+
   filter(year >= 2012) |> 
-  mutate(region_info = fct_recode(
-    region,
-    "Africa" = "AFRO",
-    "Americas" = "AMRO",
-    "Eastern Mediterranean" = "EMRO",
-    "Europe" = "EURO",
-    "South East Asia" = "SEARO",
-    "Western Pacific" = "WPRO"
-    )
-    )
+  mutate(mcv2 = mcv2 / 100)
 ```
 
 
