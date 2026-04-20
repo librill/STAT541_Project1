@@ -329,7 +329,7 @@ summarize_stats(cases_year_modified, col = p_lab_total) |>
 
 ## API-Pulled Data -- International Monetary Fund
 
-Data come from the International Monetary Fund, an international financial institution of the United Nations (https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
+The International Monetary Fund is an international financial institution of the United Nations. The organization provides policy advice, financial assistance, and capacity development to its 191 member countries, and therefore collects financial data in order to perform necessary research. We are specifically focused on GDP per capita for each country, for which information has been recorded from 1980 to present day. The API link for the data that is displayed on the website can be found [here](https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
 
 ```{r}
 # API call
@@ -390,6 +390,18 @@ dataset <- cases_year_modified |>
     #"Western Pacific" = "WPRO"
     #)
     #)
+```
+
+```{r}
+dataset |>
+  ggplot(aes(x = log(GDP_per_capita),
+             y = log(measles_incidence_rate_per_1000000_total_population/1000000))) +
+  geom_point() +
+  labs(title = "GDP and Measles Incidence Association (log scale)",
+       subtitle = "Log Measles Incidence Rate per Person",
+       x = "Log GDP per Capita (USD)",
+       y = "") +
+  theme_bw()
 ```
 
 ## API-Pulled Data -- Measles Containing Vaccine Dose 2
