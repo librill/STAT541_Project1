@@ -49,9 +49,17 @@ Below presents a series of tables which provide summary statistics on various co
 #| echo: false
 #| output: false
 
+# quality of life
 library(tidyverse)
+
+# tables 
 library(gt)
-library(tidyjson); library(jsonlite)
+
+# json files
+library(tidyjson)
+library(jsonlite)
+
+# webscraping/api
 library(httr)
 ```
 
@@ -149,7 +157,6 @@ calculate_2024_prop_sc <- function(input_month) {
 #| label: data cleaning
 
 dy <- cases_year |> 
-  
   # recoding region to be more informative
   mutate(region = fct_recode(
     region,
@@ -320,7 +327,7 @@ summarize_stats(cases_year_modified, col = p_lab_total) |>
 
 # Additional Data Sources 
 
-## API-Pulled Data
+## API-Pulled Data -- International Monetary Fund
 
 Data come from the International Monetary Fund, an international financial institution of the United Nations (https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
 
@@ -369,8 +376,8 @@ dv <- map(.x = ids,
           ) |> 
   bind_rows()
 
-dataset <- cases_year |> 
-  # join to cases_year dataset
+dataset <- cases_year_modified |> 
+  # join to cases_year dataset MODIFIED TO cases_year_modified to include all data
   full_join(dv) |> 
   filter(year >= 2012) #|> 
   #mutate(region_info = fct_recode(
@@ -385,11 +392,12 @@ dataset <- cases_year |>
     #)
 ```
 
-(https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-))
-(https://ghoapi.azureedge.net/api/MCV2)
+## API-Pulled Data -- Measles Containing Vaccine Dose 2
+
+The World Health Organization has recorded the estimated immunization coverage for each year based on various sources from 2003-2024. This estimated coverage is defined as the percentage of children who have received both doses of the measles containing vaccine (MCV2) in a given year, based on the recommended schedule for that nation. More information on the method of estimation is outlined in the Metadata section of the [website](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-)), but these estimations are useful indicators in tracking the disease reduction efforts. The API link for the data that is displayed on the website can be found [here](https://ghoapi.azureedge.net/api/MCV2).
 
 ```{r}
-# API call
+#| label: API call
 data <- GET("https://ghoapi.azureedge.net/api/MCV2")
 
 d <- tibble(json = list(parse_json(data))) |> 
@@ -399,7 +407,7 @@ d <- tibble(json = list(parse_json(data))) |>
 ```
 
 ```{r}
-# creating function to extract data from json data
+#| label: creating function to extract data from json data
 row <- function(v){
   d |> 
     select(v) |> 
@@ -427,16 +435,59 @@ data <- map(.x = d |> names(),
     #value = Value,
     "mcv2" = NumericValue
   )
+```
 
-dataset <- dataset |> 
+## Joining both sources to create one metadataset
+
+```{r}
+#| label: creating big metadata
+
+metadata <- dataset |> 
   # join to cases_year dataset
   full_join(data |> select(-region),
             by = join_by(iso3, year)
             ) |> 
-
   filter(year >= 2012) |> 
-  mutate(mcv2 = mcv2 / 100)
+  mutate(mcv2 = mcv2 / 100) 
+
+colnames(metadata)
+
 ```
 
+When looking at `colnames()` of metadata: 
 
-## Web Scraped Data
+* columns 1-20 are from TidyTuesday including created column `p_lab_total`.
+* column 21 is from 1st API external data
+* column 22 is from 2nd API external data
+## Visualization of MCV2
+
+```{r}
+#| label: mcv2 visualization
+
+# selecting the top 5 countries with the highest measles cases in 2024
+top5 <- metadata |>
+  filter(year == 2024 & !is.na(region)) |>
+  group_by(region) |>
+  mutate(prop_measles = measles_total/total_population) |>
+  slice_max(order_by = prop_measles, n = 5) |>
+  arrange(desc(prop_measles)) |>
+  mutate(rank = as.factor(row_number())) |>
+  ungroup() |>
+  arrange(region) |>
+  select("country", "region", "rank")
+
+metadata |>
+  left_join(top5, by = c("region", "country")) |>
+  select("country", "region", "year", "mcv2", "rank") |>
+  filter(!is.na(region) & !is.na(rank)) |>
+  ggplot(aes(x = year, y = mcv2, group = country, color = rank)) + 
+  geom_line() + 
+  facet_wrap(~ region) + 
+  labs(
+    title = "MCV2 Proportions of Top 5 Countries with Measles in 2024 Over Time", 
+    subtitle = "MCV2 = Measles containing vaccine - dose No. 2.", 
+    x = "Year",
+    y = "Proportion of MCV2+"
+  ) + 
+  theme_minimal()
+```
