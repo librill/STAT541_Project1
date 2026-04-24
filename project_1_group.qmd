@@ -61,16 +61,19 @@ library(jsonlite)
 
 # webscraping/api
 library(httr)
+
+# modeling
+library(nlme)
 ```
 
 ```{r}
 #| label: read in data from GitHub
 #| output: false
 
-tuesdata <- tidytuesdayR::tt_load('2025-06-24')
+#tuesdata <- tidytuesdayR::tt_load('2025-06-24')
 
-cases_month <- tuesdata$cases_month
-cases_year <- tuesdata$cases_year
+#cases_month <- tuesdata$cases_month
+#cases_year <- tuesdata$cases_year
 ```
 
 ```{r}
@@ -503,3 +506,61 @@ metadata |>
   ) + 
   theme_minimal()
 ```
+
+# Statistical Modeling
+
+```{r}
+m <- gls(measles_incidence_rate_per_1000000_total_population ~ region + GDP_per_capita + mcv2,
+    data = metadata,
+    na.action = na.omit,
+    correlation = corAR1(form = ~ year | region / country)
+    )
+
+summary(m)$tTable |> 
+  as_tibble(rownames = "var") |> 
+  mutate(region = c("Quantitative",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Quantitative",
+                    "Quantitative"
+                    )
+         ) |> 
+  mutate(var = var |> 
+           str_remove("region") |> 
+           str_replace("GDP_per_capita", "GDP per capita ($)") |> 
+           str_replace("mcv2", "MCV2")
+         
+         ) |> 
+  group_by(region) |> 
+  gt() |> 
+  fmt_number(columns = c("Value", "Std.Error", "t-value"), 
+              decimals = 3
+             ) |> 
+  fmt_number(columns = c("p-value"), 
+              decimals = 3
+             ) |> 
+  cols_align(align = "left", columns = region) |>
+  cols_label("var" = "Variable",
+             "Value" = "Estimated coefficient"
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Estimated coefficients for modeled variables "
+               )
+    ) |> 
+  tab_caption(
+    caption = md("**Table X** Estimated explanatory variable coefficients for a model using number of measles cases per million population as the dependent variable. Model utilizes an autocorrelation structure for the errors using year as the covariate."
+                 )
+    )
+```
+
