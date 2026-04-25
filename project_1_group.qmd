@@ -64,16 +64,19 @@ library(httr)
 
 # modeling
 library(nlme)
+
+# visualization
+library(fmsb)
 ```
 
 ```{r}
 #| label: read in data from GitHub
 #| output: false
 
-#tuesdata <- tidytuesdayR::tt_load('2025-06-24')
+tuesdata <- tidytuesdayR::tt_load('2025-06-24')
 
-#cases_month <- tuesdata$cases_month
-#cases_year <- tuesdata$cases_year
+cases_month <- tuesdata$cases_month
+cases_year <- tuesdata$cases_year
 ```
 
 ```{r}
@@ -474,6 +477,7 @@ When looking at `colnames()` of metadata:
 * columns 1-20 are from TidyTuesday including created column `p_lab_total`.
 * column 21 is from 1st API external data
 * column 22 is from 2nd API external data
+
 ## Visualization of MCV2
 
 ```{r}
@@ -507,8 +511,11 @@ metadata |>
   theme_minimal()
 ```
 
-# Statistical Modeling
+# Research Question 
 
+<!-- insert a research question that the model answers and include background information on that -->
+
+## Statistical Model
 ```{r}
 m <- gls(measles_incidence_rate_per_1000000_total_population ~ region + GDP_per_capita + mcv2,
     data = metadata,
@@ -564,3 +571,38 @@ summary(m)$tTable |>
     )
 ```
 
+## Visualizations 
+
+One of the areas we wanted to explore how the vaccination rate and incidence rate have changed overtime. For this, we will create a line graph that will visualize the changes in this relationship over time by each region.
+
+```{r}
+#| label: making the ribbon plot for each region
+
+#https://stackoverflow.com/questions/33529116/ggplot2-stagger-axis-labels 
+
+metadata |>
+  select(region, country, year, measles_incidence_rate_per_1000000_total_population, total_population, mcv2) |>
+  filter(year != 2025 & !is.na(region)) |>
+  mutate(vaccinations_per_1000000 = round(mcv2 * total_population / 1000000)) |>
+  group_by(region, year) |>
+  summarize(Vaccination = median(vaccinations_per_1000000, na.rm = TRUE), 
+            Incidence = median(measles_incidence_rate_per_1000000_total_population, na.rm = TRUE), 
+            .groups = "drop") |>
+  pivot_longer(
+    cols = c(Incidence, Vaccination), 
+    names_to = "type", 
+    values_to = "rate"
+  ) |>
+  ggplot(mapping = aes(x = year, y = rate, color = type)) + 
+  geom_line() + 
+  facet_wrap(~ region, axes = "all") + 
+  labs(
+    title = "Comparison of Median Incidence and MCV2 Rates By Region", 
+    subtitle = "Rates computed as the value per 1,000,000 people", 
+    y = ""
+  ) +
+  scale_x_continuous(breaks = seq(2012, 2024, by = 2), 
+                     guide = guide_axis(n.dodge = 2)) + 
+  theme_minimal()
+  
+```
