@@ -581,7 +581,7 @@ summary(m)$tTable |>
 One of the areas we wanted to explore how the vaccination rate and incidence rate have changed overtime. For this, we will create a line graph that will visualize the changes in this relationship over time by each region.
 
 ```{r}
-#| label: making the ribbon plot for each region
+#| label: making the line plot for each region
 
 #https://stackoverflow.com/questions/33529116/ggplot2-stagger-axis-labels 
 
@@ -598,17 +598,23 @@ metadata |>
     names_to = "type", 
     values_to = "rate"
   ) |>
-  ggplot(mapping = aes(x = year, y = rate, color = type)) + 
+  ggplot(aes(x = year, y = rate, color = type)) + 
   geom_line() + 
+  scale_color_manual(values = c("Incidence" = "#D55E00", "Vaccination" = "#E69F00")) + 
   facet_wrap(~ region, axes = "all") + 
   labs(
-    title = "Comparison of Median Incidence and MCV2 Rates By Region", 
+    title = "Comparison of Median <span style='color:#D55E00;'>Incidence</span> and <span style='color:#E69F00;'>MCV2</span> Rates By Region", 
     subtitle = "Rates computed as the value per 1,000,000 people", 
-    y = ""
-  ) +
+    y = "",
+    color = "Type of Rate", 
+    caption = md("**Figure 2** An area map of the countries in the world colored by 2024 vaccination rates, where red represents the vaccination rate and yellow represents the incidence rate. Rates have been aggregated by region, where the medians are displayed.")) +
   scale_x_continuous(breaks = seq(2012, 2024, by = 2), 
                      guide = guide_axis(n.dodge = 2)) + 
-  theme_minimal()
+  theme_minimal() + 
+  theme(
+    plot.title = element_markdown(), 
+    plot.caption = element_textbox_simple()
+    )
   
 ```
 

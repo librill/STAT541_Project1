@@ -1,6 +1,7 @@
 > R Environment
 >
 > When installing a package, run `renv::snapshot()` afterwards. 
+> You can also run `renv::install()` so it will add it to the snapshot for you.
 > If anyone installs a package/update the environment, run `renv::restore()`.
 
 # Project 1 -- Checkpoint 3
