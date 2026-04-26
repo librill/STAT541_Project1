@@ -605,18 +605,19 @@ metadata |>
   scale_color_manual(values = c("Incidence" = "#D55E00", "Vaccination" = "#0072B2")) + 
   facet_wrap(~ region, axes = "all") + 
   labs(
-    title = "Comparison of Median <span style='color:#D55E00;'>Incidence</span> and <span style='color:#0072B2;'>MCV2</span> Rates By Region", 
+    title = "Comparison of Median <span style='color:#D55E00;'>Incidence</span> and <span style='color:#0072B2;'>MCV2 Vaccination</span> Rates By Region", 
     subtitle = "Rates computed as the value per 1,000,000 people", 
     y = "",
+    alt = "A figure that displays line charts with median measles incidence and MCV2 vaccination rates per million people from 2012 to 2024, faceted by global region. Vaccination rate are generally higher and more stable over time, which incidence rates show more fluctuation. Patterns vary by region, with some having direct relationships and others not as clear.",
     color = "Type of Rate") +
-  scale_x_continuous(breaks = seq(2012, 2024, by = 2), 
-                     guide = guide_axis(n.dodge = 2)) + 
+  scale_x_continuous(breaks = seq(2012, 2024, by = 4), 
+                    #  guide = guide_axis(n.dodge = 2) not needed if we are doing the breaks by every 4 years
+                    ) + 
   theme_minimal() + 
   theme(
     plot.title = element_markdown(), 
-    plot.caption = element_textbox_simple()
+    legend.position = "none"
     )
-
 ```
 
 **Figure 2** An area map of the countries in the world colored by 2024 vaccination rates, where red represents the vaccination rate and blue represents the incidence rate. Rates have been aggregated by region, where the medians are displayed.
