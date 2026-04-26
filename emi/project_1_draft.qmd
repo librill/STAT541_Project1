@@ -128,12 +128,6 @@ TO DO @nanamiikii Focus on lab confirmed by country/year @an-avocado Focus on to
 #| echo: false
 library(tidyverse)
 
-#rvest 
-#rnaturalearthdata
-#rnaturalearth
-#tidyjson
-#httr
-
 ```
 
 ```{r}
@@ -204,5 +198,15 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
 ## Web Scraping
 
 ```{r}
+#| label: web scraping WHO website using iteration 
+
+library(rvest)
+
+# link: https://immunizationdata.who.int/global/wiise-detail-page/measles-vaccination-coverage?CODE=Global&ANTIGEN=&YEAR=&ADVANCED_GROUPINGS=AMRO <- editing the groupings
+
+web_data <- read_html("https://immunizationdata.who.int/global/wiise-detail-page/measles-vaccination-coverage?CODE=Global&ANTIGEN=&YEAR=&ADVANCED_GROUPINGS=AMRO")
+
+web_data |> html_elements("table")
+web_data |> html_elements(".wiise-data-table__value")
 
 ```
