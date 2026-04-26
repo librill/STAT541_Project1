@@ -576,6 +576,8 @@ summary(m)$tTable |>
     )
 ```
 
+From the table out outputs above, one of our key explanatory variables would be GDP per capita where we observed a p-value of 0.013 and a negative estimated coefficient (-0.001). This can be interpretted as richer countries having less measles cases per million.
+
 ## Visualizations 
 
 One of the areas we wanted to explore how the vaccination rate and incidence rate have changed overtime. For this, we will create a line graph that will visualize the changes in this relationship over time by each region.
@@ -617,7 +619,7 @@ metadata |>
 
 ```
 
-"**Figure 2** An area map of the countries in the world colored by 2024 vaccination rates, where red represents the vaccination rate and blue represents the incidence rate. Rates have been aggregated by region, where the medians are displayed."
+**Figure 2** An area map of the countries in the world colored by 2024 vaccination rates, where red represents the vaccination rate and blue represents the incidence rate. Rates have been aggregated by region, where the medians are displayed.
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
