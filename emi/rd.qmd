@@ -1,0 +1,474 @@
+---
+title: "Project 1"
+author: "Libby Brill, Emi Degembe, Alvaro Ramos"
+date: today
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    toc: true
+    embed-resources: true
+    message: false
+    warning: false
+    theme: "darkly"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+# quality of life
+library(tidyverse)
+
+# tables 
+library(gt)
+
+# json files
+library(tidyjson)
+library(jsonlite)
+
+# webscraping/api
+library(httr)
+
+# modeling
+library(nlme)
+
+# visualizations
+library(rnaturalearthdata)
+library(rnaturalearth)
+library(tidyverse)
+library(ggtext)
+library(scales)
+library(fmsb)
+library(ggalluvial)
+library(ggrepel)
+```
+
+# Data Cleaning
+```{r}
+#| label: read in data from GitHub
+#| output: false
+
+cases_month <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_month.csv')
+cases_year <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_year.csv')
+```
+
+```{r}
+#| label: creating function with iteration for summary statistics 
+
+########## HELPER FUNCTIONS ##########
+######################################
+
+# using the same summ_stats as practice activity 2
+summ_stats <- function(x) {
+    
+    # if x contains numeric values
+      # return a tibble with the mean, med, sd, IQR, and n observed
+    if (is.numeric(x)) {
+        out_df <- tibble(
+            mean = mean(x, na.rm = TRUE), 
+            median = median(x, na.rm = TRUE), 
+            stdev = sd(x, na.rm = TRUE), 
+            iqr = IQR(x, na.rm = TRUE),
+            n = sum(!is.na(x)) # length won't work bc of NAs
+        )
+    # if x contains categorical, return tibble with # of levels in variable 
+    } else if (is.factor(x) || is.character(x)) {
+        out_df <- tibble(
+            n_levels = n_distinct(x)
+        )
+    } else {
+        stop("Inputted values are not numeric or categorical.")
+    }
+
+    #return the data frame.
+    out_df
+}
+
+summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
+  ######### PARAMETERS ##########
+  # input: df -- the dataframe of interest 
+  # col: column of interest to summarize by: 
+  #   measels_suspect, 
+  #   measels_clinical, 
+  #   measels_epi_linked, 
+  #   measels_lab_confirmed [DEFAULT], 
+  #   measels_total
+  # mode: aggregate by options: 
+  #   region [DEFAULT], 
+  #   country, 
+  #   iso3, 
+  #   year 
+  ###############################
+  
+  df |>
+    select({{mode}}, {{col}}) |>
+    group_by({{mode}}) |>
+    #group_map removed the group column, so to retain that, group_modify.
+    # See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    group_modify( ~ summ_stats(.x |>
+                              pull({{col}}))) |>
+    bind_rows()
+}
+```
+
+```{r}
+# API call
+data <- GET("https://www.imf.org/external/datamapper/api/v1/NGDPDPC")
+
+# creating function to make tibbles for each country from json data
+country_values <- function(country){
+  
+  tibble(json = list(parse_json(data))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    select({{country}}) |> 
+    unnest_longer({{country}}) |> 
+    rename(year = str_glue("{country}_id")) |> 
+    pivot_longer(cols = {{country}},
+                 names_to = "iso3",
+                 values_to = "GDP_per_capita"
+                 ) |> 
+    mutate(year = as.numeric(year))
+  
+}
+
+# storing countries available in both the cases_year dataset and json data
+ids <- cases_year$iso3 |>
+  as.factor() |>
+  levels()
+
+ids <- ids[ids %in% (
+  tibble(json = list(parse_json(data))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    names()
+  )]
+
+# creating dataset from json data for each country and merging to one
+data <- map(.x = ids,
+            .f = country_values
+            ) |> 
+  bind_rows()
+
+# join to cases_year dataset to include all data
+dataset <- cases_year |> 
+  full_join(data) |> 
+  filter(year >= 2012) #|> 
+  #mutate(region_info = fct_recode(
+    #region,
+    #"Africa" = "AFRO",
+    #"Americas" = "AMRO",
+    #"Eastern Mediterranean" = "EMRO",
+    #"Europe" = "EURO",
+    #"South East Asia" = "SEARO",
+    #"Western Pacific" = "WPRO"
+    #)
+    #)
+```
+
+```{r}
+#| label: API call
+data <- GET("https://ghoapi.azureedge.net/api/MCV2")
+
+data <- tibble(json = list(parse_json(data))) |> 
+  unnest_wider(json) |> 
+  unnest_wider(value, names_sep = "_") |>
+  select(-"@odata.context")
+```
+
+```{r}
+#| label: creating function to extract data from json data
+row <- function(v){
+  data |> 
+    select(v) |> 
+    unnest_wider(v) |> 
+    select(ParentLocationCode,
+           #ParentLocation,
+           SpatialDim,
+           TimeDim,
+           #Value,
+           NumericValue
+           )
+}
+```
+
+```{r}
+data <- map(.x = data |> names(),  
+            .f = row
+            ) |> 
+  bind_rows() |> 
+  rename(
+    "region" = ParentLocationCode,
+    #"region_info" = ParentLocation,
+    "iso3" = SpatialDim,
+    "year" = TimeDim,
+    #value = Value,
+    "mcv2" = NumericValue
+  )
+```
+
+```{r}
+#| label: creating big metadata
+
+metadata <- dataset |> 
+  
+  # join to cases_year dataset
+  full_join(data |> select(-region),
+            by = join_by(iso3, year)
+            ) |> 
+  filter(year >= 2012) |> 
+  mutate(mcv2 = mcv2 / 100) |> 
+  
+  # recoding region to be more informative
+  mutate(
+    region_s = region,
+    region = fct_recode(
+      region,
+      "Africa" = "AFRO",
+      "Americas" = "AMRO",
+      "Eastern Mediterranean" = "EMRO",
+      "Europe" = "EURO",
+      "South East Asia" = "SEARO",
+      "Western Pacific" = "WPRO"
+      )
+    ) |> 
+  
+  mutate(p_lab_total = measles_lab_confirmed / measles_total)
+
+```
+
+# Resarch Questions
+
+<!-- RQ1 Which regions have the highest proportion of identified measles cases?
+
+[] Sankey diagram showing each region proportions
+(back-up: bubble plot) (Emi)
+
+-->
+
+<!-- RQ2 Are there associations between measles and region resources such as GDP? 
+
+Tables:
+
+[x] Table on GDP summary by region (Emi)
+
+Visualizations: 
+
+[x] modify time series plot to be faceted by GDP level group. 
+
+[x] Model fitting falls under RQ2
+--> 
+
+```{r} 
+#| label: color palette
+#| eval: false
+#| echo: false
+
+#29c1a3 green 
+#ecf0f1 white
+#3498db blue
+#f39c12 orange
+#e74c3c red
+#859394 grey
+
+```
+### Visualization of Measles Proportions
+
+```{r}
+#| label: sankey diagram visualization
+metadata |>
+  filter(year == 2024, !is.na(region)) |>
+  group_by(region) |>
+  summarize(
+    region_measles_total = sum(measles_total), 
+    region_lab_confirmed = sum(measles_lab_confirmed),
+    region_epi_linked = sum(measles_epi_linked), 
+    region_clinical = sum(measles_clinical)
+  ) |>
+  pivot_longer(
+    cols = c(region_lab_confirmed, region_epi_linked, region_clinical), 
+    names_to = "type", 
+    values_to = "count"
+  ) |>
+  mutate(
+    type = recode(type, 
+      region_lab_confirmed = "Lab Confirmed", 
+      region_epi_linked = "Epi-Linked", 
+      region_clinical = "Clinical"
+    )
+  ) |>
+  ggplot(aes(axis1 = region, axis2 = type, y = count)) + 
+  geom_alluvium(aes(fill = region)) + 
+  geom_stratum(alpha = .2) +
+  scale_fill_manual(
+    values = c("#e74c3c", "#CC79A7", "#f39c12", 
+               "#29c1a3", "#3498db", "#2c3e50")
+  ) +
+  geom_text_repel(
+    aes(label = ifelse(
+      after_stat(x) == 1, 
+      paste0(as.character(after_stat(stratum)), "\n(", as.character(comma(after_stat(count))), ")"),
+      NA)
+    ),
+    stat = "stratum",
+    direction = "y",
+    nudge_x = -.7
+  ) +
+  geom_text_repel(
+    aes(label = ifelse(
+      after_stat(x) == 2,
+       paste0(as.character(after_stat(stratum)), "\n(", as.character(comma(after_stat(count))), ")"),
+        NA)
+    ),
+    stat = "stratum",
+    direction = "y",
+    nudge_x = .35
+  ) +
+  scale_x_discrete(limits = c("Region", "Case Type")) + 
+  scale_y_continuous(
+    breaks = seq(0, 360000, by = 60000),
+    labels = label_comma()
+  ) +
+  labs(
+    title = "Measles Cases by Region and Confirmation Type", 
+    subtitle = "By counts, Colored by Region",
+    y = ""
+  ) + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  )
+
+
+
+
+
+
+```
+
+# Statistical Model
+Our research question of interest for our statistical model fitting was "are there associations between measles and region resources such as GDP?" Below, we have fit a LASSO model with region, GDP per capita and vaccination percentages as explanatory variables.
+
+From the table out outputs above, one of our key explanatory variables would be GDP per capita where we observed a p-value of 0.013 and a negative estimated coefficient (-0.001). This can be interpretted as richer countries having less measles cases per million.
+
+### Visualizations 
+
+<!-- https://blogs.worldbank.org/en/opendata/world-bank-country-classifications-by-income-level-for-2024-2025 --> 
+
+```{r}
+#| label: Table on GDP summary by region
+
+gdp_groups <- metadata |>
+  filter(!is.na(region), !is.na(GDP_per_capita)) |>
+  group_by(region) |>
+  summarize(mean_gdp = mean(GDP_per_capita, na.rm = TRUE), .groups = "drop") |>
+  mutate(
+    gdp_group = factor(
+      case_when(
+        mean_gdp <= 1145 ~ "low",
+        mean_gdp <= 14005 ~ "middle",
+        TRUE ~ "high"
+      ),
+      levels = c("low", "middle", "high")
+    )
+  )
+
+summarize_stats(metadata, col = GDP_per_capita) |>
+  filter(!is.na(region)) |>
+  left_join(gdp_groups, by = "region") |>
+  arrange(desc(mean)) |> 
+  ungroup() |>
+  gt() |> 
+  fmt_currency(columns = -c(region, n), decimals = 2) |> 
+  cols_align(align = "left", columns = region) |>
+  cols_label("region" = "Region",
+              "mean" = "Mean",
+              "median" = "Median",
+              "stdev" = "Standard Deviation",
+              "iqr" = "IQR",
+              "n" = "Sample Size",
+              ) |> 
+  tab_style(
+    style = cell_fill(color = "#e74c3c50"),
+    locations = cells_body(rows = gdp_group == "low")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#f39c1250"),
+    locations = cells_body(rows = gdp_group == "middle")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#3498db50"),
+    locations = cells_body(rows = gdp_group == "high")
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |>
+  cols_hide(columns = c(gdp_group, mean_gdp)) |>
+  tab_header(
+    title = md("Summary Statistics for GDP Per Capita (USD) by Region "), 
+    subtitle = md("GDP Groups: 
+      <span style='color:#e74c3c;'>Low</span> | <span style='color:#f39c12;'>Middle</span> | <span style='color:#3498db;'>High</span>")
+  )
+  
+
+```
+```{r}
+#| label: making the line plot for each region
+
+#https://stackoverflow.com/questions/33529116/ggplot2-stagger-axis-labels 
+
+metadata |>
+  select(region, country, year, measles_incidence_rate_per_1000000_total_population, total_population, mcv2, GDP_per_capita) |>
+  filter(year != 2025 & !is.na(region) & !is.na(GDP_per_capita)) |>
+  mutate(gdp_group = factor(
+          case_when(
+            GDP_per_capita <= 1145 ~ "low", 
+            GDP_per_capita <= 14005 ~ "middle", 
+            GDP_per_capita > 14005 ~ "high"
+            ), 
+          levels = c("low", "middle", "high")
+          )
+        ) |>
+  group_by(gdp_group, year) |>
+  summarize(Vaccination = median(mcv2 * 100, na.rm = TRUE), 
+            Incidence = median(measles_incidence_rate_per_1000000_total_population, na.rm = TRUE), 
+            .groups = "drop") |>
+  pivot_longer(
+    cols = c(Incidence, Vaccination), 
+    names_to = "type", 
+    values_to = "rate"
+  ) |>
+  ggplot(aes(x = year, y = rate, color = type)) + 
+  geom_line() + 
+  scale_color_manual(values = c("Incidence" = "#e74c3c", "Vaccination" = "#3498db")) + 
+  facet_wrap(~ gdp_group, axes = "all", ncol = 1) + 
+  labs(
+    title = "Comparison of Median <span style='color:#e74c3c;'>Incidence Rate per Million</span> and <span style='color:#3498db;'>MCV2 Vaccination Percentage</span> By Income Level", 
+    y = "",
+    alt = "A figure that displays line charts with median measles incidence and MCV2 vaccination rates per million people from 2012 to 2024, faceted by global region. Vaccination rate are generally higher and more stable over time, which incidence rates show more fluctuation. Patterns vary by region, with some having direct relationships and others not as clear.",
+    color = "Type of Rate") +
+  scale_x_continuous(breaks = seq(2012, 2024, by = 2), 
+                    #  guide = guide_axis(n.dodge = 2) not needed if we are doing the breaks by every 4 years
+                    ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_markdown(), 
+    legend.position = "none"
+    )
+```
+
+
