@@ -68,6 +68,8 @@ The data comes from the World Health Organization's Provisional monthly measels 
 
 [^4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC11359298/
 
+<!-- external data context -->
+
 ### Data Cleaning
 Below is the cleaning script provided by the [GitHub repository](https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-06-24/readme.md) which the data came from. The data were cleaned by Jen Richmond for one of the tidytuesday's datasets which form two different datasets. One represents the total number of measles and rubella cases for different years, countries, and regions (`cases_year`), and the other (`cases_month`) represents the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
 In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measels_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
@@ -294,7 +296,41 @@ colnames(metadata)
 
 ```
 
-# Research Questions
+# Resarch Questions
+
+<!-- RQ1 Which regions have the highest proportion of identified measles cases?
+
+Tables: 
+
+[] summary table wtih total numer of measles per 1 mil (remove NAs) (Alvaro)
+[] summary table with top 5 countries per region (remove NAs) (Alvaro)
+
+Visualizations: 
+
+[] Sankey diagram showing each region proportions
+(back-up: bubble plot) (Emi)
+[] Looking at symptomatic v. confirmed cases, colored by region(maybe a scatterplot) (Libby)
+
+-->
+
+<!-- RQ2 Are there associations between measles and region resources such as GDP? 
+
+Tables:
+
+[] Modify 2024 ratios of symptomatic to confirmed comparing ratio of GDP to vaccination rate for region instead of month (Libby)
+[] Table on GDP summary by region (Emi)
+
+Visualizations: 
+#009CDE <- world health org blue
+[x] map visualization 
+[] modify time series plot to be faceted by GDP level group. 
+
+[x] Model fitting falls under RQ2
+--> 
+
+
+
+
 
 # Data Summaries & Visualizations
 
