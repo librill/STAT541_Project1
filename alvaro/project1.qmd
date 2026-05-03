@@ -47,9 +47,10 @@ library(fmsb)
 ## Main dataset: Measles Cases
 
 ### On MMR
-Measels is a highly contagious respiratory infection caused by the measels virus. The spread of the virus is often through respiratory droplets and can remain in the air for up to 2 hours. While children are the most commonly affected, those who are unvaccinated, pregnant, or immunocompromised are at an increased risk. Typical symptoms include fever, congestion, cough, red eyes, and rash. Complications have led to hospitalization, pneumonia, or even a brain infection.[^1]
 
-Rubella is also a high contagious viral infection spread through airborne droplets or even direct contact with infected mucus from the nose or throat. Compared to measels, there are similar symptoms, though rubella is most known for its distinct rash pattern. Though Rubella is a mild infection for most, pregnant mothers can pass the infection to their unborn child, which can lead to severe complications. Congenital rubella symptoms include miscarriages, stillbirths, growth delays, deafnes, problems in organ formation includive the heart, or even learning difficulties.[^2] 
+Measles is a highly contagious respiratory infection caused by the measles virus. The spread of the virus is often through respiratory droplets and can remain in the air for up to 2 hours. While children are the most commonly affected, those who are unvaccinated, pregnant, or immunocompromised are at an increased risk. Typical symptoms include fever, congestion, cough, red eyes, and rash. Complications have led to hospitalization, pneumonia, or even a brain infection.[^1]
+
+Rubella is also a high contagious viral infection spread through airborne droplets or even direct contact with infected mucus from the nose or throat. Compared to measles, there are similar symptoms, though rubella is most known for its distinct rash pattern. Though Rubella is a mild infection for most, pregnant mothers can pass the infection to their unborn child, which can lead to severe complications. Congenital rubella symptoms include miscarriages, stillbirths, growth delays, deafness, problems in organ formation includive the heart, or even learning difficulties.[^2] 
 
 Both do not have treatments so if infected, the patient must let the virus run its course. The most common prevention method is through the Measels-Mumps-Rubella (MMR) vaccine which is often given to children between 12-15 months and again between 4-6 years old. This vaccine protects against the three viral infections for life and can prevent Rubella during pregnancies.[^3] 
 
@@ -58,7 +59,7 @@ Both do not have treatments so if infected, the patient must let the virus run i
 [^3]: https://www.ncbi.nlm.nih.gov/books/NBK554450/
 
 ### On Data Collection
-The data comes from the World Health Organization's Provisional monthly measels and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measles case testing follows the WHO's [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
+The data comes from the World Health Organization's Provisional monthly measles and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measles case testing follows the WHO's [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
 
 | Type of Case | Method | 
 |--------------|------------------------------------------------------------|
@@ -68,9 +69,11 @@ The data comes from the World Health Organization's Provisional monthly measels 
 
 [^4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC11359298/
 
+<!-- external data context -->
+
 ### Data Cleaning
 Below is the cleaning script provided by the [GitHub repository](https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-06-24/readme.md) which the data came from. The data were cleaned by Jen Richmond for one of the tidytuesday's datasets which form two different datasets. One represents the total number of measles and rubella cases for different years, countries, and regions (`cases_year`), and the other (`cases_month`) represents the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
-In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measels_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
+In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measles_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
 
 ```{r}
 #| label: read in data from GitHub
@@ -116,11 +119,11 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
   ######### PARAMETERS ##########
   # input: df -- the dataframe of interest 
   # col: column of interest to summarize by: 
-  #   measels_suspect, 
-  #   measels_clinical, 
-  #   measels_epi_linked, 
-  #   measels_lab_confirmed [DEFAULT], 
-  #   measels_total
+  #   measles_suspect, 
+  #   measles_clinical, 
+  #   measles_epi_linked, 
+  #   measles_lab_confirmed [DEFAULT], 
+  #   measles_total
   # mode: aggregate by options: 
   #   region [DEFAULT], 
   #   country, 
@@ -296,6 +299,45 @@ colnames(metadata)
 
 # Research Questions
 
+Regarding goals of the project, there are two main research questions of interest:
+
+* 
+* 
+
+<!-- RQ1 Which regions have the highest proportion of identified measles cases?
+
+Tables: 
+
+[] summary table wtih total numer of measles per 1 mil (remove NAs) (Alvaro)
+[] summary table with top 5 countries per region (remove NAs) (Alvaro)
+
+Visualizations: 
+
+[] Sankey diagram showing each region proportions
+(back-up: bubble plot) (Emi)
+[] Looking at symptomatic v. confirmed cases, colored by region(maybe a scatterplot) (Libby)
+
+-->
+
+<!-- RQ2 Are there associations between measles and region resources such as GDP? 
+
+Tables:
+
+[] Modify 2024 ratios of symptomatic to confirmed comparing ratio of GDP to vaccination rate for region instead of month (Libby)
+[] Table on GDP summary by region (Emi)
+
+Visualizations: 
+#009CDE <- world health org blue
+[x] map visualization 
+[] modify time series plot to be faceted by GDP level group. 
+
+[x] Model fitting falls under RQ2
+--> 
+
+
+
+
+
 # Data Summaries & Visualizations
 
 ### Preliminary Summary Statistics
@@ -325,6 +367,7 @@ calculate_2024_prop_sc <- function(input_month) {
 
 
 ### Summary of Existing Variables
+
 ```{r}
 #| label: Summary statistics of total measles by Country
 
@@ -371,13 +414,16 @@ metadata |>
 
 ```{r}
 metadata |> 
+  filter(!(is.na(region)),
+         !(is.na(country))
+         ) |> 
   
   # used to assign each country to the appropriate region when merging
   select(region, country) |> 
   unique() |>
   arrange(country) |> 
   
-  full_join(summarize_stats(metadata,
+  full_join(summarize_stats(metadata |> filter(!(is.na(region)), !(is.na(country))),
                             measles_incidence_rate_per_1000000_total_population,
                             country)) |> 
   group_by(region) |> 
@@ -415,12 +461,15 @@ metadata |>
   data_color(
     columns = "mean",
     method = "numeric",
-    palette = "RdPu"
+    palette = c("#CCEEDF", "#BAE8D4", "#A8E2CA",
+                "#96DCBF", "#83D6B5", "#6ED0AB",
+                "#57CAA1", "#3BC397", "#00BD8D"
+                )
     )
 ```
 
 ```{r}
-summarize_stats(metadata,
+summarize_stats(metadata |> filter(!(is.na(region))),
                 measles_incidence_rate_per_1000000_total_population,
                 region
                 ) |> 
@@ -452,13 +501,16 @@ summarize_stats(metadata,
     caption = md("**Table 2** Summary table visualizing various statistics of
                  the number total measles cases for each 1 million individuals.
                  Samples are collected annually from 2012 to 2024 for each
-                 country. Notably, some countries demonstrate large differences
+                 region Notably, some regions demonstrate large differences
                  between the mean and median.")
     ) |> 
   data_color(
     columns = "mean",
     method = "numeric",
-    palette = "RdPu"
+    palette = c("#CCEEDF", "#BAE8D4", "#A8E2CA",
+                "#96DCBF", "#83D6B5", "#6ED0AB",
+                "#57CAA1", "#3BC397", "#00BD8D"
+                )
     )
 ```
 
@@ -558,30 +610,32 @@ metadata |>
 ```
 
 # Statistical Model
-Our research question of interest for our statistical model fitting was "are there associations between measles and region resources such as GDP?" Below, we have fit a LASSO model with region, GDP per capita and vaccination percentages as explanatory variables.
+
+Our second research question of interest was "are there associations between measles and region resources such as GDP?" Below, we have fit a generalized least squares (GLS) model using region, GDP per capita, and vaccination percentages as explanatory variables to address the research question. Since the model uses yearly data, the model utilizes an autocorrelation structure for the errors using year as the covariate.
 
 ```{r}
-m <- gls(measles_incidence_rate_per_1000000_total_population ~ region + GDP_per_capita + mcv2,
-    data = metadata,
-    na.action = na.omit,
-    correlation = corAR1(form = ~ year | region / country)
-    )
+m <- gls(
+  measles_incidence_rate_per_1000000_total_population ~ region + log_GDP_per_capita + mcv2,
+  data = metadata |> mutate(log_GDP_per_capita = log(GDP_per_capita)),
+  na.action = na.omit,
+  correlation = corAR1(form = ~ year | region / country)
+  )
 
 summary(m)$tTable |> 
   as_tibble(rownames = "var") |> 
   mutate(region = c("Quantitative",
-                    "Region (Africa as baseline)",
-                    "Region (Africa as baseline)",
-                    "Region (Africa as baseline)",
-                    "Region (Africa as baseline)",
-                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline) (overall p-value = 0.057)",
+                    "Region (Africa as baseline) (overall p-value = 0.057)",
+                    "Region (Africa as baseline) (overall p-value = 0.057)",
+                    "Region (Africa as baseline) (overall p-value = 0.057)",
+                    "Region (Africa as baseline) (overall p-value = 0.057)",
                     "Quantitative",
                     "Quantitative"
                     )
          ) |> 
   mutate(var = var |> 
            str_remove("region") |> 
-           str_replace("GDP_per_capita", "GDP per capita ($)") |> 
+           str_replace("log_GDP_per_capita", "log(GDP per capita ($))") |> 
            str_replace("mcv2", "MCV2")
          
          ) |> 
@@ -615,7 +669,7 @@ summary(m)$tTable |>
     )
 ```
 
-From the table out outputs above, one of our key explanatory variables would be GDP per capita where we observed a p-value of 0.013 and a negative estimated coefficient (-0.001). This can be interpretted as richer countries having less measles cases per million.
+Based on the output of the model, the only statistically significant variable seems to be log(GDP per capita) as the associated p-value is 0.003. Estimated coefficient of the variable is −28.2, which may broadly be interpreted as richer countries seeing less measles cases per million. Regarding the second research question, the model suggests that there does seem to be an association between measles and region resources such as GDP.
 
 ### Visualizations 
 
