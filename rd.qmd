@@ -349,7 +349,7 @@ summarize_stats(metadata |> filter(!(is.na(region))),
     )
 ```
 
-Using table 1 to see and compare the number of total measles cases for each 1 million individuals between the different regions, we see that the region averaging the largest number seems to be the Western Pacific and the region averaging the smallest number seems to be the Americas. Addressing the research question, Western Pacific overall seems to demonstrate the largest number of total measles cases. Looking further into each region, another table is created to see the number of total measles cases for each 1 million individuals for the top 5 countries of each region.
+Using table 1 to compare the number of total measles cases for each 1 million individuals between the different regions, we see that the region averaging the largest number seems to be the Western Pacific and the region averaging the smallest number seems to be the Americas. Addressing the research question, Western Pacific overall seems to demonstrate the largest number of total measles cases. Looking further into each region, another table is created to see the number of total measles cases for each 1 million individuals for the top 5 countries of each region.
 
 ```{r}
 #| label: table-2 - summary table with top 5 countries per region
@@ -505,7 +505,7 @@ In figure 2, we observe that the region with the most measles cases would be Eur
 
 :::{.callout-note}
 
-RQ2 Are there associations between measles and region resources such as GDP? 
+RQ2 Are there associations between measles and region socioeconomic indicators such as vaccination rate and GDP? 
 
 Tables:
 
