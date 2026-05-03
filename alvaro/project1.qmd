@@ -1,246 +1,691 @@
 ---
-title: "project 1"
-author: "Alvaro Ramos"
-format: html
-embed-resources: true
-code-tools: true
+title: "Project 1"
+author: "Libby Brill, Emi Degembe, Alvaro Ramos"
+date: today
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    toc: true
+    embed-resources: true
+    message: false
+    warning: false
+    theme: "darkly"
 ---
 
 ```{r}
-#| label: packages-setup
-library(tidyverse); library(gt)
+#| echo: false
+#| output: false
+
+# quality of life
+library(tidyverse)
+
+# tables 
+library(gt)
+
+# json files
+library(tidyjson)
+library(jsonlite)
+
+# webscraping/api
+library(httr)
+
+# modeling
+library(nlme)
+
+# visualizations
+library(rnaturalearthdata)
+library(rnaturalearth)
+library(tidyverse)
+library(ggtext)
+library(scales)
+library(fmsb)
 ```
 
+# Data Context
+
+## Main dataset: Measles Cases
+
+### On MMR
+Measels is a highly contagious respiratory infection caused by the measels virus. The spread of the virus is often through respiratory droplets and can remain in the air for up to 2 hours. While children are the most commonly affected, those who are unvaccinated, pregnant, or immunocompromised are at an increased risk. Typical symptoms include fever, congestion, cough, red eyes, and rash. Complications have led to hospitalization, pneumonia, or even a brain infection.[^1]
+
+Rubella is also a high contagious viral infection spread through airborne droplets or even direct contact with infected mucus from the nose or throat. Compared to measels, there are similar symptoms, though rubella is most known for its distinct rash pattern. Though Rubella is a mild infection for most, pregnant mothers can pass the infection to their unborn child, which can lead to severe complications. Congenital rubella symptoms include miscarriages, stillbirths, growth delays, deafnes, problems in organ formation includive the heart, or even learning difficulties.[^2] 
+
+Both do not have treatments so if infected, the patient must let the virus run its course. The most common prevention method is through the Measels-Mumps-Rubella (MMR) vaccine which is often given to children between 12-15 months and again between 4-6 years old. This vaccine protects against the three viral infections for life and can prevent Rubella during pregnancies.[^3] 
+
+[^1]: https://www.who.int/news-room/fact-sheets/detail/measles
+[^2]: https://www.mayoclinic.org/diseases-conditions/rubella/symptoms-causes/syc-20377310
+[^3]: https://www.ncbi.nlm.nih.gov/books/NBK554450/
+
+### On Data Collection
+The data comes from the World Health Organization's Provisional monthly measels and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measles case testing follows the WHO's [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
+
+| Type of Case | Method | 
+|--------------|------------------------------------------------------------|
+| Clinically Compatible | Patient meets symptom profile, but no sample was collected or no epidemiological link was established. | 
+| Epidemiologically Linked | Used when lab testing becomes impractical. Once outbreak is confirmed via laboratory setting, subsequent suspected cases are confirmed via epidemiological linkage. | 
+| Laboratory Confirmed | Two main methods: IgM Serology, RT-PCR. Both are rapid test kits where the IgM kit identifies the presence of antibodies for the virus and RT-PCR (real-time polymerase chain reaction) amplifies the RNA of the virus in order to confirm the presence/absence at a molecular level. Other methods include Genotyping and Sanger Sequencing which are done through the Global Measels and Rubella Laboratory Network (GMRLN)[^4].| 
+
+[^4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC11359298/
+
+### Data Cleaning
+Below is the cleaning script provided by the [GitHub repository](https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-06-24/readme.md) which the data came from. The data were cleaned by Jen Richmond for one of the tidytuesday's datasets which form two different datasets. One represents the total number of measles and rubella cases for different years, countries, and regions (`cases_year`), and the other (`cases_month`) represents the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
+In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measels_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
+
 ```{r}
-# loading in the data
+#| label: read in data from GitHub
+#| output: false
+
 cases_month <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_month.csv')
 cases_year <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-06-24/cases_year.csv')
 ```
 
-
-## Data
-
-Data used for this project, which explores measles and rubella cases around the world, come from the World Health Organization "Provisional measles and rubella data" from June 12, 2025, and the data were cleaned by Jen Richmond for one of the tidytuesday's datasets. Data form two different datasets, one being the total number of measles and rubella cases for different years, countries, and regions, and the other being the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
-
 ```{r}
-cases_month
-cases_year
-```
+#| label: creating function with iteration for summary statistics 
 
-Using these data, there are some research questions that may be addressed:
+########## HELPER FUNCTIONS ##########
+######################################
 
-* Are there differences between different regions or countries for the number of measles and rubella cases over time?
-* Are there differences between different regions or countries for the number of discarded measles and rubella cases over time?
-* Using supplemental data, what variables of the region or country (economy, size, emissions, healthcare, etc.) seem to be associated to the number of measles and rubella cases?
-* Using supplemental data, what environmental variables (weather, wind speed, temperature, rain, etc.) seem to be associated to the number of measles and rubella cases?
-
-![](image.png)
-![](image2.png)
-
-## checkpoint_2
-
-```{r}
-dm <- cases_month
-dy <- cases_year
-```
-
-### function draft
-
-```{r}
-summ_stats <- function(x){
-  
-  if (is.numeric(x)){
-    tibble(
-      var = var(x),
-      mean = mean(x),
-      median = median(x),
-      sd = sd(x),
-      iqr = quantile(x, 0.75) - quantile(x, 0.25)
-    )
-  }
-  
-  else if (is.character(x) | is.factor(x)){
-    tibble(nlevels(as.factor(x)))
-  }
-  
-}
-```
-
-```{r}
-# function to determine average rate
-rate <- function(x){
-  
-  # initialize tibble
-  r <- tibble(
-    country = levels(as.factor(dy$country))
-  )
-  
-  # initialize vector to store rate for each country
-  v <- c()
-  
-  # for each country
-  for (i in r$country){
-
-    d <- dy |> 
-      filter(country == i)
+# using the same summ_stats as practice activity 2
+summ_stats <- function(x) {
     
-    # initialize storage vector
-    s <- c()
-    
-    # calculate 
-    for (i in (2:length(d$year))){
-      
-      diff_yr <- d$year[i] - d$year[i - 1]
-      diff_x <- d[[x]][i] - d[[x]][i - 1]
-      rate <- diff_x / diff_yr
-      
-      s <- append(s, rate)
+    # if x contains numeric values
+      # return a tibble with the mean, med, sd, IQR, and n observed
+    if (is.numeric(x)) {
+        out_df <- tibble(
+            mean = mean(x, na.rm = TRUE), 
+            median = median(x, na.rm = TRUE), 
+            stdev = sd(x, na.rm = TRUE), 
+            iqr = IQR(x, na.rm = TRUE),
+            n = sum(!is.na(x)) # length won't work bc of NAs
+        )
+    # if x contains categorical, return tibble with # of levels in variable 
+    } else if (is.factor(x) || is.character(x)) {
+        out_df <- tibble(
+            n_levels = n_distinct(x)
+        )
+    } else {
+        stop("Inputted values are not numeric or categorical.")
     }
-    
-    avg_rate <- mean(s)
-    v <- append(v, avg_rate)
-    
-  }
+
+    #return the data frame.
+    out_df
+}
+
+summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
+  ######### PARAMETERS ##########
+  # input: df -- the dataframe of interest 
+  # col: column of interest to summarize by: 
+  #   measels_suspect, 
+  #   measels_clinical, 
+  #   measels_epi_linked, 
+  #   measels_lab_confirmed [DEFAULT], 
+  #   measels_total
+  # mode: aggregate by options: 
+  #   region [DEFAULT], 
+  #   country, 
+  #   iso3, 
+  #   year 
+  ###############################
   
-  r <- r |>
-    bind_cols(x = v) |> 
-    mutate(x = round(x, 2))
+  df |>
+    select({{mode}}, {{col}}) |>
+    group_by({{mode}}) |>
+    #group_map removed the group column, so to retain that, group_modify.
+    # See second example: https://dplyr.tidyverse.org/reference/group_map.html
+    group_modify( ~ summ_stats(.x |>
+                              pull({{col}}))) |>
+    bind_rows()
+}
+```
+
+
+## API-Pulled Data -- International Monetary Fund
+
+The International Monetary Fund is an international financial institution of the United Nations. The organization provides policy advice, financial assistance, and capacity development to its 191 member countries, and therefore collects financial data in order to perform necessary research. We are specifically focused on GDP per capita for each country, for which information has been recorded from 1980 to present day. The API link for the data that is displayed on the website can be found [here](https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
+
+```{r}
+# API call
+data <- GET("https://www.imf.org/external/datamapper/api/v1/NGDPDPC")
+
+# creating function to make tibbles for each country from json data
+country_values <- function(country){
   
-  r
+  tibble(json = list(parse_json(data))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    select({{country}}) |> 
+    unnest_longer({{country}}) |> 
+    rename(year = str_glue("{country}_id")) |> 
+    pivot_longer(cols = {{country}},
+                 names_to = "iso3",
+                 values_to = "GDP_per_capita"
+                 ) |> 
+    mutate(year = as.numeric(year))
+  
+}
+
+# storing countries available in both the cases_year dataset and json data
+ids <- cases_year$iso3 |>
+  as.factor() |>
+  levels()
+
+ids <- ids[ids %in% (
+  tibble(json = list(parse_json(data))) |> 
+    unnest_wider(json) |> 
+    unnest_longer(values) |> 
+    unnest_wider(values) |>
+    slice_head() |> 
+    names()
+  )]
+
+# creating dataset from json data for each country and merging to one
+data <- map(.x = ids,
+            .f = country_values
+            ) |> 
+  bind_rows()
+
+# join to cases_year dataset to include all data
+dataset <- cases_year |> 
+  full_join(data) |> 
+  filter(year >= 2012) #|> 
+  #mutate(region_info = fct_recode(
+    #region,
+    #"Africa" = "AFRO",
+    #"Americas" = "AMRO",
+    #"Eastern Mediterranean" = "EMRO",
+    #"Europe" = "EURO",
+    #"South East Asia" = "SEARO",
+    #"Western Pacific" = "WPRO"
+    #)
+    #)
+```
+
+```{r}
+dataset |>
+  ggplot(aes(x = log(GDP_per_capita),
+             y = log(measles_incidence_rate_per_1000000_total_population/1000000))) +
+  geom_point() +
+  labs(title = "GDP and Measles Incidence Association (log scale)",
+       subtitle = "Log Measles Incidence Rate per Person",
+       x = "Log GDP per Capita (USD)",
+       y = "") +
+  theme_bw()
+```
+
+## API-Pulled Data -- Measles Containing Vaccine Dose 2
+
+The World Health Organization has recorded the estimated immunization coverage for each year based on various sources from 2003-2024. This estimated coverage is defined as the percentage of children who have received both doses of the measles containing vaccine (MCV2) in a given year, based on the recommended schedule for that nation. More information on the method of estimation is outlined in the Metadata section of the [website](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-)), but these estimations are useful indicators in tracking the disease reduction efforts. The API link for the data that is displayed on the website can be found [here](https://ghoapi.azureedge.net/api/MCV2).
+
+```{r}
+#| label: API call
+data <- GET("https://ghoapi.azureedge.net/api/MCV2")
+
+data <- tibble(json = list(parse_json(data))) |> 
+  unnest_wider(json) |> 
+  unnest_wider(value, names_sep = "_") |>
+  select(-"@odata.context")
+```
+
+```{r}
+#| label: creating function to extract data from json data
+row <- function(v){
+  data |> 
+    select(v) |> 
+    unnest_wider(v) |> 
+    select(ParentLocationCode,
+           #ParentLocation,
+           SpatialDim,
+           TimeDim,
+           #Value,
+           NumericValue
+           )
 }
 ```
 
 ```{r}
-d <- rate("total_population")
+data <- map(.x = data |> names(),  
+            .f = row
+            ) |> 
+  bind_rows() |> 
+  rename(
+    "region" = ParentLocationCode,
+    #"region_info" = ParentLocation,
+    "iso3" = SpatialDim,
+    "year" = TimeDim,
+    #value = Value,
+    "mcv2" = NumericValue
+  )
 ```
 
+## Joining both sources to create one metadataset
+
 ```{r}
-dy |> 
-  group_by(region, country) |> 
-  summarize(count = n()) |> 
-  na.omit() |> 
-  select(-count) |> 
-  #full_join(rate("total_population")) |> 
-  full_join(rate("measles_clinical")) |> 
-  summarize(mean = mean(x) |> round(2))
+#| label: creating big metadata
+
+metadata <- dataset |> 
+  
+  # join to cases_year dataset
+  full_join(data |> select(-region),
+            by = join_by(iso3, year)
+            ) |> 
+  filter(year >= 2012) |> 
+  mutate(mcv2 = mcv2 / 100) |> 
+  
+  # recoding region to be more informative
+  mutate(
+    region_s = region,
+    region = fct_recode(
+      region,
+      "Africa" = "AFRO",
+      "Americas" = "AMRO",
+      "Eastern Mediterranean" = "EMRO",
+      "Europe" = "EURO",
+      "South East Asia" = "SEARO",
+      "Western Pacific" = "WPRO"
+      )
+    ) |> 
+  
+  mutate(p_lab_total = measles_lab_confirmed / measles_total)
+
+colnames(metadata)
+
+```
+
+# Research Questions
+
+# Data Summaries & Visualizations
+
+### Preliminary Summary Statistics
+
+Below presents a series of tables which provide summary statistics on various columns described in the dataset. 
+
+```{r}
+#| label: new variable function + interation
+
+calculate_2024_prop_sc <- function(input_month) {
+  if (!is.numeric(input_month)) {
+    stop("Months should be integers (1 for Jan, 2 for Feb, etc.)")
+  }
+  
+  cases_month |>
+    filter(year == 2024,
+           month == input_month) |>
+    summarize(symptomatic = sum(measles_suspect + measles_clinical,
+                                na.rm = TRUE),
+              confirmed = sum(measles_epi_linked + measles_lab_confirmed,
+                              na.rm = TRUE),
+              prop = symptomatic / confirmed) |>
+    select(prop) |>
+    pull()
+}
 ```
 
 
-
-
-
-
-
-
-
-
-
-### summary tables
-
+### Summary of Existing Variables
 ```{r}
-# recoding region to be more informative
-dy <- dy |> 
-  mutate(region = fct_recode(
-    region,
-    "Africa" = "AFRO",
-    "Americas" = "AMRO",
-    "Eastern Mediterranean" = "EMRO",
-    "Europe" = "EURO",
-    "South East Asia" = "SEARO",
-    "Western Pacific" = "WPRO"
-    )
-    )
-```
+#| label: Summary statistics of total measles by Country
 
-```{r}
-dy |> 
-  group_by(region, country) |> 
-  summarize(avg_cases = mean(measles_total, na.rm = TRUE)) |> 
-  arrange(-avg_cases) |> 
+metadata |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(metadata, measles_total, country)) |> 
+  group_by(region) |> 
+  arrange(-mean) |> 
+  
   gt() |> 
-  fmt_number(columns = avg_cases, 
+  fmt_number(columns = -c(country, region, n), 
              decimals = 2) |> 
-  cols_label("avg_cases" = "Average") |> 
+  cols_label("country" = "Country",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
     ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
   tab_header(
-    title = md("Average number of total measles cases")
+    title = md("Summary Statistics of Total Measles Cases by Country")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing the average number of total measles cases from 2012 to 2024 for different countries")
-    )
+    caption = md("**Table 1** Summary table visualizing various statistics of
+                 total measles cases by country. Samples are collected annually
+                 from 2012 to 2024. Notably, some countries demonstrate large
+                 differences between the mean and median.")
+    )# |> 
+  #summary_rows(region)
 ```
 
 ```{r}
-dy |> 
-  group_by(region, country) |> 
-  summarize(avg_cases = mean(measles_total, na.rm = TRUE)) |> 
-  ungroup() |> 
-  arrange(-avg_cases) |> 
+metadata |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(metadata,
+                            measles_incidence_rate_per_1000000_total_population,
+                            country)) |> 
+  group_by(region) |> 
+  slice_max(mean, n = 5) |> 
+  arrange(-mean) |> 
   gt() |> 
-  fmt_number(columns = avg_cases, 
+  fmt_number(columns = -c(country, region, n), 
              decimals = 2) |> 
-  cols_label("avg_cases" = "Average") |> 
-  data_color(columns = region) |> 
+  cols_label("country" = "Country",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
     ) |> 
-  tab_header(
-    title = md("Average number of total measles cases")
-  ) |> 
-  tab_caption(
-    caption = md("**Fig X.** Summary table visualizing the average number of total measles cases from 2012 to 2024 for different countries, colored by region")
-    )
-```
-
-```{r}
-dy |> 
-  group_by(region, country) |> 
-  mutate(prop = measles_total / total_population) |> 
-  summarize(mean_prop = mean(prop)) |> 
-  arrange(-mean_prop) |> 
-  gt() |> 
-  fmt_number(columns = mean_prop, 
-             decimals = 5) |> 
-  cols_label("mean_prop" = "Average proportion") |> 
   tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels()
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
     ) |> 
   tab_header(
-    title = md("Average population proportion of measles cases")
+    title = md("Summary Statistics for Total Number of Measles Cases for Each
+               1 Million Individuals")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing the average population proportion of measles cases from 2012 to 2024 for different countries")
+    caption = md("**Table 2** Summary table visualizing various statistics of
+                 the number total measles cases for each 1 million individuals.
+                 Samples are collected annually from 2012 to 2024 for each
+                 country. Notably, some countries demonstrate large differences
+                 between the mean and median.")
+    ) |> 
+  data_color(
+    columns = "mean",
+    method = "numeric",
+    palette = "RdPu"
     )
 ```
 
 ```{r}
-dy |> 
-  group_by(region, country) |> 
-  mutate(prop = measles_total / total_population) |> 
-  summarize(mean_prop = mean(prop)) |> 
+summarize_stats(metadata,
+                measles_incidence_rate_per_1000000_total_population,
+                region
+                ) |> 
   ungroup() |> 
-  arrange(-mean_prop) |> 
+  arrange(-mean) |> 
   gt() |> 
-  fmt_number(columns = mean_prop, 
-             decimals = 5) |> 
-  cols_label("mean_prop" = "Average proportion") |> 
-  data_color(columns = region) |> 
+  fmt_number(columns = -c(region, n), 
+             decimals = 2) |> 
+  cols_label("region" = "Region",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
     ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
   tab_header(
-    title = md("Average population proportion of measles cases")
+    title = md("Summary Statistics for Total Number of Measles Cases for Each
+               1 Million Individuals")
   ) |> 
   tab_caption(
-    caption = md("**Fig X.** Summary table visualizing the average population proportion of measles cases from 2012 to 2024 for different countries, colored by region")
+    caption = md("**Table 2** Summary table visualizing various statistics of
+                 the number total measles cases for each 1 million individuals.
+                 Samples are collected annually from 2012 to 2024 for each
+                 country. Notably, some countries demonstrate large differences
+                 between the mean and median.")
+    ) |> 
+  data_color(
+    columns = "mean",
+    method = "numeric",
+    palette = "RdPu"
     )
 ```
 
 
+### Summary of Created Variables
+```{r}
+#| label: Created variable 1 -- proportion of symptomatic v. confirmed
+
+cases_month |>
+  filter(year == 2024) |>
+  distinct(month) |>
+  mutate(prop_symptomatic_confirmed = map_dbl(month, calculate_2024_prop_sc),
+         month = month(month, label = TRUE, abbr = FALSE)) |>
+  gt() |>
+  data_color(columns = prop_symptomatic_confirmed, method = "numeric",
+             palette = "Greens") |>
+  fmt_number(columns = prop_symptomatic_confirmed, decimals = 2) |>
+  cols_align(align = "left", columns = month) |>
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_column_labels()) |>
+  tab_header(title = md("2024 Ratios of Symptomatic to Confirmed Measles Cases")) |>
+  tab_caption(caption = md("**Table 3** Summary table visualizing how overall
+                           (across all countries) ratios of symptomatic to
+                           confirmed measles cases changed throughout the year
+                           2024")) |>
+  cols_label(month = "Month",
+             prop_symptomatic_confirmed = "Symptomatic/Confirmed Proportion")
+```
+
+```{r}
+#| label: Modified 2 -- lab cases/total cases proportion by region 
+
+summarize_stats(metadata, col = p_lab_total) |>
+  arrange(-mean) |> 
+  ungroup() |>
+  gt() |> 
+  fmt_number(columns = -c(region, n), 
+              decimals = 2) |> 
+  cols_align(align = "left", columns = region) |>
+  cols_label("region" = "Region",
+              "mean" = "Mean",
+              "median" = "Median",
+              "stdev" = "Standard Deviation",
+              "iqr" = "IQR",
+              "n" = "Sample Size",
+              ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics for Proportion of Lab Confirmed Measles Cases
+               by Region")
+  ) |> 
+  tab_caption(
+    caption = md("**Table 4** Summary table for the proportion of total measles
+                 cases that are lab confirmed. Samples are collected annually
+                 from a year range of 2012-2024.")
+    )
+```
+
+### Visualization of MCV2
+
+```{r}
+#| label: mcv2 visualization
+
+# selecting the top 5 countries with the highest measles cases in 2024
+top5 <- metadata |>
+  filter(year == 2024 & !is.na(region)) |>
+  group_by(region) |>
+  mutate(prop_measles = measles_total/total_population) |>
+  slice_max(order_by = prop_measles, n = 5) |>
+  arrange(desc(prop_measles)) |>
+  mutate(rank = as.factor(row_number())) |>
+  ungroup() |>
+  arrange(region) |>
+  select("country", "region", "rank")
+
+metadata |>
+  left_join(top5, by = c("region", "country")) |>
+  select("country", "region", "year", "mcv2", "rank") |>
+  filter(!is.na(region) & !is.na(rank)) |>
+  ggplot(aes(x = year, y = mcv2, group = country, color = rank)) + 
+  geom_line() + 
+  facet_wrap(~ region) + 
+  labs(
+    title = "MCV2 Proportions of Top 5 Countries with Measles in 2024 Over Time", 
+    subtitle = "MCV2 = Measles containing vaccine - dose No. 2.", 
+    x = "Year",
+    y = "Proportion of MCV2+"
+  ) + 
+  theme_minimal()
+```
+
+# Statistical Model
+Our research question of interest for our statistical model fitting was "are there associations between measles and region resources such as GDP?" Below, we have fit a LASSO model with region, GDP per capita and vaccination percentages as explanatory variables.
+
+```{r}
+m <- gls(measles_incidence_rate_per_1000000_total_population ~ region + GDP_per_capita + mcv2,
+    data = metadata,
+    na.action = na.omit,
+    correlation = corAR1(form = ~ year | region / country)
+    )
+
+summary(m)$tTable |> 
+  as_tibble(rownames = "var") |> 
+  mutate(region = c("Quantitative",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Region (Africa as baseline)",
+                    "Quantitative",
+                    "Quantitative"
+                    )
+         ) |> 
+  mutate(var = var |> 
+           str_remove("region") |> 
+           str_replace("GDP_per_capita", "GDP per capita ($)") |> 
+           str_replace("mcv2", "MCV2")
+         
+         ) |> 
+  group_by(region) |> 
+  gt() |> 
+  fmt_number(columns = c("Value", "Std.Error", "t-value"), 
+              decimals = 3
+             ) |> 
+  fmt_number(columns = c("p-value"), 
+              decimals = 3
+             ) |> 
+  cols_align(align = "left", columns = region) |>
+  cols_label("var" = "Variable",
+             "Value" = "Estimated coefficient"
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Estimated coefficients for modeled variables "
+               )
+    ) |> 
+  tab_caption(
+    caption = md("**Table 5** Estimated explanatory variable coefficients for a model using number of measles cases per million population as the dependent variable. Model utilizes an autocorrelation structure for the errors using year as the covariate."
+                 )
+    )
+```
+
+From the table out outputs above, one of our key explanatory variables would be GDP per capita where we observed a p-value of 0.013 and a negative estimated coefficient (-0.001). This can be interpretted as richer countries having less measles cases per million.
+
+### Visualizations 
+
+One of the areas we wanted to explore how the vaccination rate and incidence rate have changed overtime. For this, we will create a line graph that will visualize the changes in this relationship over time by each region.
+
+```{r}
+#| label: making the line plot for each region
+
+#https://stackoverflow.com/questions/33529116/ggplot2-stagger-axis-labels 
+
+metadata |>
+  select(region, country, year, measles_incidence_rate_per_1000000_total_population, total_population, mcv2) |>
+  filter(year != 2025 & !is.na(region)) |>
+  mutate(vaccinations_per_1000000 = round(mcv2 * total_population / 1000000)) |>
+  group_by(region, year) |>
+  summarize(Vaccination = median(vaccinations_per_1000000, na.rm = TRUE), 
+            Incidence = median(measles_incidence_rate_per_1000000_total_population, na.rm = TRUE), 
+            .groups = "drop") |>
+  pivot_longer(
+    cols = c(Incidence, Vaccination), 
+    names_to = "type", 
+    values_to = "rate"
+  ) |>
+  ggplot(aes(x = year, y = rate, color = type)) + 
+  geom_line() + 
+  scale_color_manual(values = c("Incidence" = "#D55E00", "Vaccination" = "#0072B2")) + 
+  facet_wrap(~ region, axes = "all") + 
+  labs(
+    title = "Comparison of Median <span style='color:#D55E00;'>Incidence</span> and <span style='color:#0072B2;'>MCV2 Vaccination</span> Rates By Region", 
+    subtitle = "Rates computed as the value per 1,000,000 people", 
+    y = "",
+    alt = "A figure that displays line charts with median measles incidence and MCV2 vaccination rates per million people from 2012 to 2024, faceted by global region. Vaccination rate are generally higher and more stable over time, which incidence rates show more fluctuation. Patterns vary by region, with some having direct relationships and others not as clear.",
+    color = "Type of Rate") +
+  scale_x_continuous(breaks = seq(2012, 2024, by = 4), 
+                    #  guide = guide_axis(n.dodge = 2) not needed if we are doing the breaks by every 4 years
+                    ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_markdown(), 
+    legend.position = "none"
+    )
+```
+
+**Figure 2** An area map of the countries in the world colored by 2024 vaccination rates, where red represents the vaccination rate and blue represents the incidence rate. Rates have been aggregated by region, where the medians are displayed.
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+metadata_2024 <- metadata |>
+  filter(year == 2024)
+
+world |>
+  left_join(metadata_2024, join_by(iso_a3_eh == iso3)) |>
+  ggplot() +
+  geom_sf(aes(fill = mcv2)) +
+  scale_fill_gradient(low = "red",
+                      high = "white",
+                      limits = c(0, 1),
+                      breaks = c(0, 0.5, 1),
+                      labels = label_percent()) +
+  labs(title = "2024 Measles Vaccination Rates Around the World",
+       x = "",
+       y = "",
+       fill = "Measles Vaccination Rate",
+       caption = md("**Figure 3** A map of the countries in the world colored by 2024 vaccination rates, where lighter red represents a higher vaccination rate and darker red represents a lower vaccination rate. Contries that are grayed out have unknown vaccination rates."),
+       alt = "A world map displaying 2024 measles vaccination rates on a red color scale. Many countries in North America, Europe, and parts of Asia appear lighter, suggesting higher vaccination coverage, while several countries in central and sub-Saharan Africa are darker, suggesting lower coverage. Some countries are gray, representing unknown vaccination rates.") +
+  theme_bw() +
+  theme(plot.caption = element_textbox_simple(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+```
 
