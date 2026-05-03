@@ -251,9 +251,7 @@ data <- map(.x = data |> names(),
 
 ## Metadata
 
-All three (3) datasets were then combined to create one main dataset, `metadata`, which will streamline the analysis and minimize the redundancy of joins. The final data dictionary is as follows: 
-
-<!-- add data dictionary -->
+All three (3) datasets were then combined to create one main dataset, `metadata`, which will streamline the analysis and minimize the redundancy of joins.
 
 ```{r}
 #| label: creating big metadata
@@ -287,23 +285,7 @@ metadata <- dataset |>
 
 # Determining Identified Measles Cases Across Regions
 
-**Research Question**: Which regions have the highest proportion of identified measles cases?
-
-:::{.callout-note}
-
-RQ1 Which regions have the highest proportion of identified measles cases?
-
-Tables: 
-
-- [x] summary table wtih total numer of measles per 1 mil (remove NAs) (Alvaro)
-- [x] summary table with top 5 countries per region (remove NAs) (Alvaro)
-
-Visualizations: 
-
-- [x] Sankey diagram showing each region counts (Emi)
-- [ ] Looking at symptomatic v. confirmed cases, colored by region(maybe a scatterplot) (Libby)
-
-:::
+**Research Question**: Which regions have the highest number of identified measles cases and what proportion are identified cases?
 
 Below, we present a data analysis observing which regions have the highest proportion of identified measles cases. Given the context of the data, both lab and epidemiologically-linked are properly evaluated by a health-care provider whereas clinical cases are based on symptoms and thus, hold a level of skepticism. We will be considering clinically linked cases, however, they will not be considered identified.
 
@@ -349,62 +331,7 @@ summarize_stats(metadata |> filter(!(is.na(region))),
     )
 ```
 
-Using table 1 to compare the number of total measles cases for each 1 million individuals between the different regions, we see that the region averaging the largest number seems to be the Western Pacific and the region averaging the smallest number seems to be the Americas. Addressing the research question, Western Pacific overall seems to demonstrate the largest number of total measles cases. Looking further into each region, another table is created to see the number of total measles cases for each 1 million individuals for the top 5 countries of each region.
-
-```{r}
-#| label: table-2 - summary table with top 5 countries per region
-#| tbl-cap: "**Table 2** Summary table visualizing various statistics of the number of total measles cases for each 1 million individuals. Shown are the top 5 countries for each region. Samples are collected annually from 2012 to 2024 for each country. Notably, some countries demonstrate large differences between the mean and median."
-
-metadata |> 
-  filter(!(is.na(region)),
-         !(is.na(country))
-         ) |> 
-  
-  # used to assign each country to the appropriate region when merging
-  select(region, country) |> 
-  unique() |>
-  arrange(country) |> 
-  
-  full_join(summarize_stats(metadata |> filter(!(is.na(region)), !(is.na(country))),
-                            measles_incidence_rate_per_1000000_total_population,
-                            country)) |> 
-  group_by(region) |> 
-  slice_max(mean, n = 5) |> 
-  arrange(-mean) |> 
-  gt() |> 
-  fmt_number(columns = -c(country, region, n), 
-             decimals = 2) |> 
-  cols_label("country" = "Country",
-             "mean" = "Mean",
-             "median" = "Median",
-             "stdev" = "Standard Deviation",
-             "iqr" = "IQR",
-             "n" = "Sample Size",
-             ) |> 
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels()
-    ) |> 
-  tab_style(
-    style = cell_text(style = "italic", decorate = "underline"),
-    locations = cells_row_groups()
-    ) |> 
-  tab_header(
-    title = md("Summary Statistics for Total Number of Measles Cases for Each
-               1 Million Individuals")
-  ) |> 
-  data_color(
-    columns = "mean",
-    method = "numeric",
-    palette = c("#CCEEDF", "#BAE8D4", "#A8E2CA",
-                "#96DCBF", "#83D6B5", "#6ED0AB",
-                "#57CAA1", "#3BC397", "#00BD8D"
-                )
-    )
-
-```
-
-Using table 2 to look at how the number of total measles cases for each 1 million individuals differs for the different top 5 countries for each region, we see that for the Western Pacific region, Mongolia demonstrates a mean number that seems to be substantially larger than any of the countries for any region.
+Using table 1 to compare the number of total measles cases for each 1 million individuals between the different regions, we see that the region averaging the largest number seems to be the Western Pacific and the region averaging the smallest number seems to be the Americas. Addressing the research question, Western Pacific overall seems to demonstrate the largest number of total measles cases. We investigated further by observing the proportion of measles cases by region, excluding those that were clinically symptomatic.
 
 ```{r}
 #| label: figure-1 - Lollipop plot 
@@ -419,14 +346,14 @@ metadata |>
   geom_segment(aes(x = 0, xend = prop_confirmed)) +
   geom_point(color = "#f39c12", size = 3) +
   scale_x_continuous(labels = label_percent()) +
-  labs(title = "Proportion of Confirmed Measles Cases by Region",
-       x = "Percent of Total Measles Cases that are Confirmed (%)",
+  labs(title = "Proportion of Identified Measles Cases by Region",
+       x = "Percent of Total Measles Cases that are Identified (%)",
        y = "",
-       alt = "A lollipop plot displaying the percent of total meales cases that are confirmed by region. Americas has the highest percentage with nearly all total measles cases confirmed. Eastern Mediterranean and South East Asia have the lowest percentages at just below 50%.") +
+       alt = "A lollipop plot displaying the percent of total meales cases that are identified by region. Americas has the highest percentage with nearly all total measles cases confirmed. Eastern Mediterranean and South East Asia have the lowest percentages at just below 50%.") +
   theme_bw()
 ```
 
-Figure 1 shows that the Americas have the highest proportion of validated cases with a near 100% confirmation rate. This suggests a very strong diagnostic infrastructure where almost every suspected case is officially verified. The Eastern Mediterranean and South East Asia regions show the lowest proportions, with both falling just under the 50% mark. This means that more than half of the measles cases in these regions remain unconfirmed by lab or epidemiological links.
+Figure 1 shows that the Americas have the highest proportion of validated cases with a near 100% confirmation rate. This suggests a very strong diagnostic infrastructure where almost every suspected case is officially verified. The Eastern Mediterranean and South East Asia regions show the lowest proportions, with both falling just under the 50% mark. This means that more than half of the measles cases in these regions remain unconfirmed by lab or epidemiological links. 
 
 ```{r}
 #| label: figure-2
@@ -488,7 +415,8 @@ metadata |>
   labs(
     title = "Measles Cases by Region and Confirmation Type", 
     subtitle = "By counts, Colored by Region",
-    y = ""
+    y = "", 
+    alt = "An alluvial figure that displays the flow of total measles cases from world regions to the confirmation type going left to right. Flows split into three case types; lab confirmed, epidemiologically linked, and clinical symptomatic. Europe and Easter Mediterranean contribute the largest shares overall going to lab confirmed and clinical symptoms. Americas contribute very few cases."
   ) + 
   theme_minimal() + 
   theme(
@@ -497,30 +425,68 @@ metadata |>
 
 ```
 
-In figure 2, we observe that the region with the most measles cases would be Europe with 127,424 cases across the whole region. We also see that they have the highest counts of lab confirmed measles cases. Other regions such as the Eastern Mediterranean region and Southeast Asia appeared to have a noticeable number of measles cases classified as clinical or epidemiologically linked. We wanted to explore this concept further which leads to our follow-up research question exploring the resources of the regions. 
+In figure 2, we observe that the region with the most measles cases would be Europe with 127,424 cases across the whole region. We also see that they have the highest counts of lab confirmed measles cases. Other regions such as the Eastern Mediterranean region and Southeast Asia appeared to have a noticeable number of measles cases classified as clinical or epidemiologically linked Looking further into each region, another table is created to see the number of total measles cases for each 1 million individuals for the top 5 countries of each region.
 
-# Determining Associations Between Measles Cases and Region Resources
+```{r}
+#| label: table-2 - summary table with top 5 countries per region
+#| tbl-cap: "**Table 2** Summary table visualizing various statistics of the number of total measles cases for each 1 million individuals. Shown are the top 5 countries for each region. Samples are collected annually from 2012 to 2024 for each country. Notably, some countries demonstrate large differences between the mean and median."
 
-**Research Question**: Are there associations between measles and region resources such as GDP?
+metadata |> 
+  filter(!(is.na(region)),
+         !(is.na(country))
+         ) |> 
+  
+  # used to assign each country to the appropriate region when merging
+  select(region, country) |> 
+  unique() |>
+  arrange(country) |> 
+  
+  full_join(summarize_stats(metadata |> filter(!(is.na(region)), !(is.na(country))),
+                            measles_incidence_rate_per_1000000_total_population,
+                            country)) |> 
+  group_by(region) |> 
+  slice_max(mean, n = 5) |> 
+  arrange(-mean) |> 
+  gt() |> 
+  fmt_number(columns = -c(country, region, n), 
+             decimals = 2) |> 
+  cols_label("country" = "Country",
+             "mean" = "Mean",
+             "median" = "Median",
+             "stdev" = "Standard Deviation",
+             "iqr" = "IQR",
+             "n" = "Sample Size",
+             ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |> 
+  tab_style(
+    style = cell_text(style = "italic", decorate = "underline"),
+    locations = cells_row_groups()
+    ) |> 
+  tab_header(
+    title = md("Summary Statistics for Total Number of Measles Cases for Each
+               1 Million Individuals")
+  ) |> 
+  data_color(
+    columns = "mean",
+    method = "numeric",
+    palette = c("#CCEEDF", "#BAE8D4", "#A8E2CA",
+                "#96DCBF", "#83D6B5", "#6ED0AB",
+                "#57CAA1", "#3BC397", "#00BD8D"
+                )
+    )
 
-:::{.callout-note}
+```
 
-RQ2 Are there associations between measles and region socioeconomic indicators such as vaccination rate and GDP? 
+Using table 2 to look at how the number of total measles cases for each 1 million individuals differs for the different top 5 countries for each region, we see that for the Western Pacific region, Mongolia demonstrates a mean number that seems to be substantially larger than any of the countries for any region. This explores potential outliers, which we will investigate further by exploring the socioeconomic indicators of each region. 
 
-Tables:
+# Determining Associations Between Measles Cases and Region Indicators
 
-- [ ] Modify 2024 ratios of symptomatic to confirmed comparing ratio of GDP to vaccination rate for region instead of month (Libby)
-- [x] Table on GDP summary by region (Emi)
+**Research Question**: Are there associations between measles and region socioeconomic indicators such as GDP?
 
-Visualizations: 
-
-- [ ] map visualization (Libby)
-- [x] modify time series plot to be faceted by GDP level group. (Emi)
-- [x] Model fitting (Alvaro)
-
-:::
-
-We developed our exploration of the data into external data containing information on each country's GDP and vaccination rates. Using the World Bank Group's country classifications for 2024-2025[^5], the organization classifies each country using the following thresholds: 
+We developed our exploration of the data into external data containing information on each country's GDP and percent of population vaccinated with the second dose of the vaccination course, MCV2. Using the World Bank Group's country classifications for 2024-2025[^5], the organization classifies each country using the following thresholds: 
 
 | Classification | GDP Per Capita (USD) |
 |----------------|----------------|
@@ -587,6 +553,10 @@ summarize_stats(metadata |> filter(year == 2024), col = GDP_per_capita) |>
     locations = cells_row_groups()
     ) |>
   cols_hide(columns = c(gdp_group, mean_gdp)) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+    ) |>
   tab_header(
     title = md("Summary Statistics for GDP Per Capita (USD) by Region in 2024"), 
     subtitle = md("GDP classification based on mean of region: 
@@ -594,9 +564,7 @@ summarize_stats(metadata |> filter(year == 2024), col = GDP_per_capita) |>
   )
 ```
 
-In table 3 we can see that Europe is now our richest region, with Africa being the poorest. Futhermore, the two regions that had some of the lowest relative proportions of lab confirmed cases happen to be considered middle income regions, as observed in figure 2. One key observation is Europe's standard deviation being the greatest as well, which makes looking strictly at each region difficult as the regions capture various income classifications. To further look into how GDP per capita may play into the number of measles cases, we look at the incidence rate per million and MCV2 vaccination percentage for each of these classifications.
-
-<!-- ADD NOTE ABOUT HOW NO REGION FELL INTO "LOW"? -->
+In table 3 we can see that Europe is now our richest region, with Africa being the poorest. However, it is noteworthy that even Africa as a whole would be considered a middle-income earning region as opposed to low. Futhermore, the two regions that had some of the lowest relative proportions of lab confirmed cases happen to be considered middle income regions, as observed in figure 2. One key observation is Europe's standard deviation being the greatest as well, which makes looking strictly at each region difficult as the regions capture various income classifications. To further look into how GDP per capita may play into the number of measles cases, we look at the incidence rate per million and MCV2 vaccination percentage for each of these classifications.
 
 ```{r}
 #| label: figure-3
@@ -628,15 +596,15 @@ metadata |>
   facet_wrap(~ gdp_group, axes = "all") + 
   labs(
     title = "Comparison of Median <span style='color:#e74c3c;'>Incidence Rate per Million</span> and <span style='color:#3498db;'>MCV2 Vaccination Percentage</span>",
-    subtitle = "Grouped by income level defined as by World Bank",
+    subtitle = "Countries grouped by income level defined as by World Bank",
     y = "",
-    alt = "A figure that displays line charts with median measles incidence and MCV2 vaccination rates per million people from 2012 to 2024, faceted by global region. Vaccination rate are generally higher and more stable over time, which incidence rates show more fluctuation. Patterns vary by region, with some having direct relationships and others not as clear.",
+    alt = "A figure that displays line charts with median measles incidence and MCV2 vaccination rates per million people from 2012 to 2024, faceted by income classification. Vaccination rate are generally higher as the income classification group rises, which indicates generally that richer countries are more vaccinated. Low income countries have a more direct relationship between these two variables.",
     color = "Type of Rate") +
   scale_x_continuous(breaks = seq(2012, 2024, by = 4), 
                     ) + 
   theme_minimal() + 
   theme(
-    plot.title = element_markdown(), 
+    plot.title = element_markdown(size = 12), 
     legend.position = "none"
     )
 
@@ -665,8 +633,8 @@ metadata |>
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_column_labels()) |>
   tab_header(title = md("Average GDP per Capita and MCV2 Vaccine Rate by Region")) |>
-  tab_caption(caption = md("**Table 4**")) |>
-  cols_label(region = "Region", mean_GDP = "Mean GDP (USD)", mean_mcv2 = "Mean MCV2 Rate")
+  tab_caption(caption = md("**Table 4** Side-by-side comparison of mean GDP and MCV2 Percentage")) |>
+  cols_label(region = "Region", mean_GDP = "Mean GDP (USD)", mean_mcv2 = "Mean MCV2 Coverage")
 ```
 
 Table 4 shows that a higher average region GDP is generally associated with a higher measles vaccination rate (with the exception of South East Asia, which has the second-lowest mean GDP but the second-highest MCV2 rate). Africa has the lowest GDP and the lowest MCV2, while Europe has the highest in both.
@@ -700,8 +668,7 @@ world |>
         panel.grid = element_blank())
 ```
 
-Figure 4 shows that many countries in North America, Europe, and parts of Asia have higher vaccination coverage, while several countries in central and sub-Saharan Africa have lower coverage.
-<!-- ADD COMPARISON TO TABLE, TALK ABOUT WHAT THE GDP IS FOR THESE REGIONS? OR MAYBE THE MEASLES RATE -->
+Figure 4 shows that many countries in North America, Europe, and parts of Asia have higher vaccination coverage, while several countries in central and sub-Saharan Africa have lower coverage. Referring back to table 2, we can see that Africa and Southeast Asia have relatively consistent top 5 countries the highest measles cases per one million, which also aligns with table 3's column highlighting standard deviations where these bottom two also have the lowest deviation. This reflects that the regions overall are more consistent, which we can visually in the map indicated by the larger sections of red in these geographic regions. 
 
 Below, we fit a generalized least squares (GLS) model using region, GDP per capita, and vaccination percentages as explanatory variables to address the research question. Since the model uses yearly data, the model utilizes an autocorrelation structure for the errors using year as the covariate.
 
@@ -761,6 +728,10 @@ summary(m)$tTable |>
 ```
 
 Based on the output of the model, the only statistically significant variable seems to be log(GDP per capita) as the associated p-value is 0.003. Estimated coefficient of the variable is −28.2, which may broadly be interpreted as richer countries seeing less measles cases per million. These results suggest that there does seem to be an association between measles and region resources such as GDP.
+
+# Conclusion 
+
+This analysis provided insight into the relationships between socioeconomic indicators such as vaccination and GDP per capita and each WHO region. Based on our observations, the two regions with the most measles cases yet lowest identified measles proportions were Africa and Southeast Asia. We conclude that based on our visualizations, tables, and model, that GDP is a worthy indicator of identified measles cases, with a visual relationship with vaccination as well. Seeing that these two regions are the only two not classified as high earning regions, if we were to suggest any insightful action, it would be to concentrate WHO resources to these regions. 
 
 [^1]: https://www.who.int/news-room/fact-sheets/detail/measles
 [^2]: https://www.mayoclinic.org/diseases-conditions/rubella/symptoms-causes/syc-20377310
