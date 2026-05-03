@@ -37,7 +37,6 @@ library(nlme)
 # visualizations
 library(rnaturalearthdata)
 library(rnaturalearth)
-library(tidyverse)
 library(ggtext)
 library(scales)
 library(fmsb)

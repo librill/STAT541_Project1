@@ -1,0 +1,13 @@
+tidyverse
+gt
+tidyjson
+jsonlite
+httr
+nlme
+rnaturalearthdata
+rnaturalearth
+ggtext
+scales
+fmsb
+ggalluvial
+ggrepel
