@@ -1,5 +1,5 @@
 ---
-title: "Project 1"
+title: "WHO Measles Investigation -- Looking at Socioeconomic Indicators and Measles Incidences Globally"
 author: "Libby Brill, Emi Degembe, Alvaro Ramos"
 date: today
 format: 
@@ -44,27 +44,24 @@ library(ggalluvial)
 library(ggrepel)
 ```
 
-# Data Context
-
-## On MMR
+# Introduction On MMR
 Measels is a highly contagious respiratory infection caused by the measels virus. The spread of the virus is often through respiratory droplets and can remain in the air for up to 2 hours. While children are the most commonly affected, those who are unvaccinated, pregnant, or immunocompromised are at an increased risk. Typical symptoms include fever, congestion, cough, red eyes, and rash. Complications have led to hospitalization, pneumonia, or even a brain infection.[^1]
 
 Rubella is also a high contagious viral infection spread through airborne droplets or even direct contact with infected mucus from the nose or throat. Compared to measels, there are similar symptoms, though rubella is most known for its distinct rash pattern. Though Rubella is a mild infection for most, pregnant mothers can pass the infection to their unborn child, which can lead to severe complications. Congenital rubella symptoms include miscarriages, stillbirths, growth delays, deafnes, problems in organ formation includive the heart, or even learning difficulties.[^2] 
 
 Both do not have treatments so if infected, the patient must let the virus run its course. The most common prevention method is through the Measels-Mumps-Rubella (MMR) vaccine which is often given to children between 12-15 months and again between 4-6 years old. This vaccine protects against the three viral infections for life and can prevent Rubella during pregnancies.[^3] 
 
-## Main dataset: Measles Cases
+# Methodologies & Data Cleaning 
 
-The data comes from the World Health Organization's Provisional monthly measels and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measles case testing follows the WHO's [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
+## Main dataset: WHO Provisional Measles Cases
+
+The data comes from the World Health Organization's Provisional monthly measels and rubella data, which contains information on those who were suspected to have the virus, were tested for the virus, and confirmed had the virus. The data includes cases from as early as 2012 and as recent as 2025, collected globally by the organization. The measles case testing follows the World Health Organization (WHO)'s [Measles Programmatic Risk Assessment Tool](https://www.who.int/teams/immunization-vaccines-and-biologicals/immunization-analysis-and-insights/surveillance/measles-programmatic-risk-assessment-tool) where they further collect samples as necessary. The table below breaks down each identified case method following the assessment of a suspected case: 
 
 | Type of Case | Method | 
 |--------------|------------------------------------------------------------|
 | Clinically Compatible | Patient meets symptom profile, but no sample was collected or no epidemiological link was established. | 
 | Epidemiologically Linked | Used when lab testing becomes impractical. Once outbreak is confirmed via laboratory setting, subsequent suspected cases are confirmed via epidemiological linkage. | 
 | Laboratory Confirmed | Two main methods: IgM Serology, RT-PCR. Both are rapid test kits where the IgM kit identifies the presence of antibodies for the virus and RT-PCR (real-time polymerase chain reaction) amplifies the RNA of the virus in order to confirm the presence/absence at a molecular level. Other methods include Genotyping and Sanger Sequencing which are done through the Global Measels and Rubella Laboratory Network (GMRLN)[^4].| 
-
-
-<!-- external data context -->
 
 Below is the cleaning script provided by the [GitHub repository](https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-06-24/readme.md) which the data came from. The data were cleaned by Jen Richmond for one of the tidytuesday's datasets which form two different datasets. One represents the total number of measles and rubella cases for different years, countries, and regions (`cases_year`), and the other (`cases_month`) represents the number of measles and rubella cases for different months of a year. Most of the data cleaning done by Jen Richmond includes renaming the variables to make variable names more informative and assigning variables to different data types.
 In `cases_month`, the main cleaning that was done was converting all column names to snake case with `clean_names()`, ensuring consistent naming across all columns. Additionally, the mutate line converts all columns from year to discarded into numerical values. In `cases_year`, the first row of data was established as the column names then did the same snake case naming standardization. The column names were then renamed to column names that described what data is contained in the columns. For example, what used to be column name `na` is now `measels_lab_confirmed` which is far more understandable than what it was called in the raw data. Finally, the first row of data (not the column names that were just renamed) was dropped.
@@ -137,9 +134,9 @@ summarize_stats <- function(df, col = measles_lab_confirmed, mode = region) {
 ```
 
 
-## API-Pulled Data -- International Monetary Fund
+## International Monetary Fund Providing GDP Per Capita Context
 
-The International Monetary Fund is an international financial institution of the United Nations. The organization provides policy advice, financial assistance, and capacity development to its 191 member countries, and therefore collects financial data in order to perform necessary research. We are specifically focused on GDP per capita for each country, for which information has been recorded from 1980 to present day. The API link for the data that is displayed on the website can be found [here](https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
+The International Monetary Fund is an international financial institution of the United Nations. The organization provides policy advice, financial assistance, and capacity development to its 191 member countries, and therefore collects financial data in order to perform necessary research. We are specifically focused on GDP per capita for each country, for which information has been recorded from 1980 to present day. The data was pulled with an API, which can be viewed on the web [here](https://www.imf.org/external/datamapper/api/v1/NGDPDPC).
 
 ```{r}
 #| label: api calling
@@ -202,9 +199,9 @@ dataset <- cases_year |>
     #)
 ```
 
-## API-Pulled Data -- Measles Containing Vaccine Dose 2
+## WHO MCV Course 2 Vaccination Records
 
-The World Health Organization has recorded the estimated immunization coverage for each year based on various sources from 2003-2024. This estimated coverage is defined as the percentage of children who have received both doses of the measles containing vaccine (MCV2) in a given year, based on the recommended schedule for that nation. More information on the method of estimation is outlined in the Metadata section of the [website](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-)), but these estimations are useful indicators in tracking the disease reduction efforts. The API link for the data that is displayed on the website can be found [here](https://ghoapi.azureedge.net/api/MCV2).
+The WHO has recorded the estimated immunization coverage for each year based on various sources from 2003-2024. This estimated coverage is defined as the percentage of children who have received both doses of the measles containing vaccine (MCV2) in a given year, based on the recommended schedule for that nation. More information on the method of estimation is outlined in the Metadata section of the [website](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles-containing-vaccine-second-dose-(mcv2)-immunization-coverage-by-the-nationally-recommended-age-(-)), but these estimations are useful indicators in tracking the disease reduction efforts. The API link for the data that is displayed on the website can be found [here](https://ghoapi.azureedge.net/api/MCV2).
 
 ```{r}
 #| label: API call 2
@@ -250,7 +247,34 @@ data <- map(.x = data |> names(),
 
 ## Metadata
 
-All three (3) datasets were then combined to create one main dataset, `metadata`, which will streamline the analysis and minimize the redundancy of joins.
+All three (3) datasets were then combined to create one main dataset, `metadata`, which will streamline the analysis and minimize the redundancy of joins. Below is a complete data dictionary which provides a brief description of each of the columns contained in the final dataset: 
+
+<!-- so I typed this, but it's actually extremely messy and I'm not really the world's biggest fan so it woudl be super nice if one of you could turn it into a pretty gtable maybe? Open to suggestions, mainly just worried about TOC and table collision and long variable names. -->
+
+| Column Name | Description |
+|-------------|----------------------------------------------------------------|
+| region | WHO identification of the geographic region for each country | 
+| country | Name of each country | 
+| iso3 | Three-letter ISO country code | 
+| year | Year of the data collection | 
+| total_population | Estimated total population for the country given that year | 
+| annualized_population_most_recent_year_only | The adjusted population for the most recent available information. For the purpose of this analysis, 2025 would be the only impacted year as the data only contains partial information for the year 2025 as collection data only goes until June 2025 | 
+| total_suspected_measles_rubella_cases | The total suspected measles/rubella cases reported for the country |
+| measles_total | The total of measles cases, combining lab-confirmed, epidemiologically linked, and clinically compatible measles cases | 
+| measles_lab_confirmed | Number of measles cases that were lab confirmed | 
+| measles_epi_linked | Number of measles cases that were epidemiologically linked | 
+| measles_clinical | Number of measles cases that were classified clinically based on patient symptoms without any linkage or lab work |
+| measles_incidence_rate_per_1000000_total_population | Measles incidence rate per 1,000,000 people. Typically calculated as $\frac{\text{measles_total}}{\text{population} * 1,000,000}$ | 
+| rubella_total | The total of rubella cases, combining lab-confirmed, epidemiologically linked, and clinically compatible measles cases | 
+| rubella_lab_confirmed | Number of rubella cases that were lab confirmed | 
+| rubella_epi_linked | Number of rubella cases that were epidemiologically linked | 
+| rubella_clinical | Number of rubella cases that were classified clinically based on patient symptoms without any linkage or lab work |
+| rubella_incidence_rate_per_1000000_total_population | Rubella incidence rate per 1,000,000 people. Typically calculated as $\frac{\text{rubella_total}}{\text{population} * 1,000,000}$ | 
+| discarded_non_measles_rubella_cases_per_100000_total_population | Rate of discarded non-measles/rubella cases per 100,00 people. | 
+| GDP_per_capita | Gross domestic product (GDP) per capita for the country given the current year. This is reported in USD (from API) | 
+| mcv2 | Coverage proportion for the second course of measles-containing vaccine (from API) | 
+| region_s | A 4-character region classification code for each WHO region | 
+| p_lab_total | Proportion of total measles cases that were identified, which is defined as either lab confirmed or epidemiologically linked. (created variable) |
 
 ```{r}
 #| label: creating big metadata
@@ -280,6 +304,7 @@ metadata <- dataset |>
   
   mutate(p_lab_total = measles_lab_confirmed / measles_total)
 
+write.table(metadata, file = "metadata.txt")
 ```
 
 # Determining Identified Measles Cases Across Regions
@@ -353,6 +378,8 @@ metadata |>
 ```
 
 Figure 1 shows that the Americas have the highest proportion of validated cases with a near 100% confirmation rate. This suggests a very strong diagnostic infrastructure where almost every suspected case is officially verified. The Eastern Mediterranean and South East Asia regions show the lowest proportions, with both falling just under the 50% mark. This means that more than half of the measles cases in these regions remain unconfirmed by lab or epidemiological links. 
+
+<!-- INCLUDE A COMMENT ABOUT HOW THIS CONNECTS TO NEXT PLOT --> 
 
 ```{r}
 #| label: figure-2
@@ -638,6 +665,8 @@ metadata |>
 
 Table 4 shows that a higher average region GDP is generally associated with a higher measles vaccination rate (with the exception of South East Asia, which has the second-lowest mean GDP but the second-highest MCV2 rate). Africa has the lowest GDP and the lowest MCV2, while Europe has the highest in both.
 
+<!-- we can probably add more comments here? --> 
+
 ```{r}
 #| label: figure 4 - map visualization 
 #| fig-cap: "**Figure 4** A map of the countries in the world colored by 2024 vaccination rates, where lighter red represents a higher vaccination rate and darker red represents a lower vaccination rate. Contries that are grayed out have unknown vaccination rates."
@@ -729,7 +758,6 @@ summary(m)$tTable |>
 Based on the output of the model, the only statistically significant variable seems to be log(GDP per capita) as the associated p-value is 0.003. Estimated coefficient of the variable is −28.2, which may broadly be interpreted as richer countries seeing less measles cases per million. These results suggest that there does seem to be an association between measles and region resources such as GDP.
 
 # Conclusion 
-
 This analysis provided insight into the relationships between socioeconomic indicators such as vaccination and GDP per capita and each WHO region. Based on our observations, the two regions with the most measles cases yet lowest identified measles proportions were Africa and Southeast Asia. We conclude that based on our visualizations, tables, and model, that GDP is a worthy indicator of identified measles cases, with a visual relationship with vaccination as well. Seeing that these two regions are the only two not classified as high earning regions, if we were to suggest any insightful action, it would be to concentrate WHO resources to these regions. 
 
 [^1]: https://www.who.int/news-room/fact-sheets/detail/measles
