@@ -245,37 +245,6 @@ data <- map(.x = data |> names(),
   )
 ```
 
-## Metadata
-
-All three (3) datasets were then combined to create one main dataset, `metadata`, which will streamline the analysis and minimize the redundancy of joins. Below is a complete data dictionary which provides a brief description of each of the columns contained in the final dataset: 
-
-<!-- so I typed this, but it's actually extremely messy and I'm not really the world's biggest fan so it woudl be super nice if one of you could turn it into a pretty gtable maybe? Open to suggestions, mainly just worried about TOC and table collision and long variable names. -->
-
-| Column Name | Description |
-|-------------|----------------------------------------------------------------|
-| region | WHO identification of the geographic region for each country | 
-| country | Name of each country | 
-| iso3 | Three-letter ISO country code | 
-| year | Year of the data collection | 
-| total_population | Estimated total population for the country given that year | 
-| annualized_population_most_recent_year_only | The adjusted population for the most recent available information. For the purpose of this analysis, 2025 would be the only impacted year as the data only contains partial information for the year 2025 as collection data only goes until June 2025 | 
-| total_suspected_measles_rubella_cases | The total suspected measles/rubella cases reported for the country |
-| measles_total | The total of measles cases, combining lab-confirmed, epidemiologically linked, and clinically compatible measles cases | 
-| measles_lab_confirmed | Number of measles cases that were lab confirmed | 
-| measles_epi_linked | Number of measles cases that were epidemiologically linked | 
-| measles_clinical | Number of measles cases that were classified clinically based on patient symptoms without any linkage or lab work |
-| measles_incidence_rate_per_1000000_total_population | Measles incidence rate per 1,000,000 people. Typically calculated as $\frac{\text{measles_total}}{\text{population} * 1,000,000}$ | 
-| rubella_total | The total of rubella cases, combining lab-confirmed, epidemiologically linked, and clinically compatible measles cases | 
-| rubella_lab_confirmed | Number of rubella cases that were lab confirmed | 
-| rubella_epi_linked | Number of rubella cases that were epidemiologically linked | 
-| rubella_clinical | Number of rubella cases that were classified clinically based on patient symptoms without any linkage or lab work |
-| rubella_incidence_rate_per_1000000_total_population | Rubella incidence rate per 1,000,000 people. Typically calculated as $\frac{\text{rubella_total}}{\text{population} * 1,000,000}$ | 
-| discarded_non_measles_rubella_cases_per_100000_total_population | Rate of discarded non-measles/rubella cases per 100,00 people. | 
-| GDP_per_capita | Gross domestic product (GDP) per capita for the country given the current year. This is reported in USD (from API) | 
-| mcv2 | Coverage proportion for the second course of measles-containing vaccine (from API) | 
-| region_s | A 4-character region classification code for each WHO region | 
-| p_lab_total | Proportion of total measles cases that were identified, which is defined as either lab confirmed or epidemiologically linked. (created variable) |
-
 ```{r}
 #| label: creating big metadata
 
@@ -379,7 +348,7 @@ metadata |>
 
 Figure 1 shows that the Americas have the highest proportion of validated cases with a near 100% confirmation rate. This suggests a very strong diagnostic infrastructure where almost every suspected case is officially verified. The Eastern Mediterranean and South East Asia regions show the lowest proportions, with both falling just under the 50% mark. This means that more than half of the measles cases in these regions remain unconfirmed by lab or epidemiological links. 
 
-<!-- INCLUDE A COMMENT ABOUT HOW THIS CONNECTS TO NEXT PLOT --> 
+We then further investigated the specific confirmation types, comparing the split of clinically, epidemiologically-linked, and lab confirmed measles cases in each region.
 
 ```{r}
 #| label: figure-2
@@ -665,7 +634,7 @@ metadata |>
 
 Table 4 shows that a higher average region GDP is generally associated with a higher measles vaccination rate (with the exception of South East Asia, which has the second-lowest mean GDP but the second-highest MCV2 rate). Africa has the lowest GDP and the lowest MCV2, while Europe has the highest in both.
 
-<!-- we can probably add more comments here? --> 
+We were also interested in looking deeper within each region, and focusing on country-specific information. Specifically, MCV2 rates in the most recent year in the data, 2024.
 
 ```{r}
 #| label: figure 4 - map visualization 
